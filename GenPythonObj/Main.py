@@ -5,6 +5,13 @@ import json
 
 import Json2PythonObj as json2py
 
+def load_json(json_file: str):
+    try:
+        with open(json_file) as f:
+            return json.load(f)
+    except IOError as x:
+        assert False, f"{json_file} cannot be opened."
+
 def argument_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -19,4 +26,5 @@ def argument_parser():
     return args.file
 
 if __name__ == "__main__":
-    IrJsonFile = argument_parser()
+    irJsonFile = argument_parser()
+    irDict = load_json(irJsonFile)
