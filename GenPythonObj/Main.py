@@ -27,4 +27,9 @@ def argument_parser():
 
 if __name__ == "__main__":
     irJsonFile = argument_parser()
-    irDict = load_json(irJsonFile)
+    irNodes = load_json(irJsonFile)
+
+    # All IRs generated with this Main.py will have the default IR ID.
+    irId = 0
+
+    json2py.Json2PythonObj(irNodes, irId)

@@ -15,6 +15,53 @@ import sys
 from IR import IRGraph
 from IR import Node
 
-def Json2PythonObj(irDict: dict):
+DEFAULT_ID = -1
+UNAVAILABLE = -1
 
-    IRGraph = IRGraph()
+def get_edges(node_id: int, edges: list, IR: IRGraph):
+    """This function create, populate, and return new_edges,
+    which holds "self", node object, and/or UNAVAILABLE value.
+    """
+
+    new_edges = []
+
+    # Handle 3 cases:
+    # (1) Node pointing to itself. Add string 'self' and hanlde it later.
+    # (2) Node pointing to other nodes. Find and add node object to edge.
+    # (3) Node was removed from the edge. Add UNAVAILABLE.
+    for edge_node_id in edges:
+        if edge_node_id > UNAVAILABLE and edge_node_id == node_id:
+            new_edges.append("self")
+        elif edge_node_id > UNAVAILABLE and edge_node_id != node_id:
+            for node in IR.nodes:
+                if edge_node_id == node.id:
+                    new_edges.append(node)
+        else:
+            new_edges.append(UNAVAILABLE)
+
+    return new_edges
+
+def get_adds(node_id: int, added: list, IR: IRGraph):
+    """
+    """
+    pass
+
+def Json2PythonObj(irNodes: list, irId: int):
+    """This function is the main function to form a python object from
+    the loaded JSON data.
+    """
+
+    IR = IRGraph()
+    IR.id = irId
+
+    for jNode in irNodes:
+        pNode = Node()
+
+        pNode.ir_Id = irId
+        pNode.id = jNode["id"]
+        pNode.alive = jNode["alive"]
+        pNode.size = jNode["size"]
+        pNode.opcode = jNode["opcode"]
+        pNode.address = jNode["address"]
+        pNode.edges = get_edges(jNode["id"], jNode["edges"], IR)
+        pNode.added_nodes = get_adds(jNode["id"], jNode["added"], IR)
