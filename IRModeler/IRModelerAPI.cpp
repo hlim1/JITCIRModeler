@@ -1389,7 +1389,7 @@ void write2Json() {
     ofstream jsonFile;
     jsonFile.open("ir.json");
 
-    jsonFile << "{" << endl;
+    jsonFile << "[" << endl;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
         jsonFile << "   {" << endl;
@@ -1473,7 +1473,7 @@ void write2Json() {
             jsonFile << "   }" << endl;
         }
     }
-    jsonFile << "}" << endl;
+    jsonFile << "]" << endl;
 }
 
 /**
