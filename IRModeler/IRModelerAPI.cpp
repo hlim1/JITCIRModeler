@@ -1383,6 +1383,8 @@ void setupFile(UINT16 infoSelect) {
     fwrite(&infoSelHeader, sizeof(InfoSelHeader), 1, traceFile);
 }
 
+// ===========================================================
+
 void write2Json() {
     ofstream jsonFile;
     jsonFile.open("ir.json");
@@ -1402,7 +1404,7 @@ void write2Json() {
         jsonFile << "       \"address\": \"" << hex << node->intAddress << "\"," << endl; 
         jsonFile << "       \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
         jsonFile << "       \"size\": " << dec << node->size << "," << endl; 
-        // 
+        // Write edge information.
         jsonFile << "       \"edges\": [";
         for (int i = 0; i < node->numberOfEdges; i++) {
             if (node->edgeNodes[i] != NULL) {
@@ -1417,7 +1419,7 @@ void write2Json() {
             }
         }
         jsonFile << "]," << endl;
-        //
+        // Write occupied memory location and the value informations
         jsonFile << "       \"occupied\": {" << endl;
         for (int i = 0; i < node->numberOfLocs; i++) {
             jsonFile << "           \"" << dec << node->occupiedLocs[i] << "\": ";
@@ -1431,7 +1433,7 @@ void write2Json() {
             }
         }
         jsonFile << "       }," << endl;
-        //
+        // Write added optimization information.
         jsonFile << "       \"added\": [";
         for (int i = 0; i < node->numberOfAdds; i++) {
             jsonFile << dec << node->addedNodeIds[i];
@@ -1440,7 +1442,7 @@ void write2Json() {
             }
         }
         jsonFile << "]," << endl;
-        //
+        // Write removed optimization information.
         jsonFile << "       \"removed\": [";
         for (int i = 0; i < node->numberOfRemoves; i++) {
             jsonFile << dec << node->removedNodeIds[i];
@@ -1449,7 +1451,7 @@ void write2Json() {
             }
         }
         jsonFile << "]," << endl;
-        //
+        // Write replaced optimization information..
         jsonFile << "       \"replaced\": {" << endl;
         for (int i = 0; i < node->numberOfReplaces; i++) {
             jsonFile << "           \"" << dec << node->replacedNodeIds[i][0] << "\": ";
@@ -1481,10 +1483,4 @@ void write2Json() {
  **/
 void endFile() {
     write2Json();
-    /*
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        Node *node = IRGraph->nodes[i];
-        printNode(node);
-    }
-    */
 }
