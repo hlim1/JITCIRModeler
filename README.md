@@ -9,7 +9,7 @@ Just-in-Time Compiler Intermediate Representation Modeler (JITCIRModeler)
 3) Clone the repository under the root directory of the Pin. This is where `PIN_ROOT` is pointing.
 4) Execute the command under JITCIRModeler/IRModeler/.
 
-    './build.sh'
+    'make'
 
 ## IRModeler Execute Command and Example
 
@@ -17,3 +17,6 @@ Just-in-Time Compiler Intermediate Representation Modeler (JITCIRModeler)
 
 e.g.,
     \<PIN\_ROOT\>/pin -t \<PIN\_ROOT\>/JITCIRModeler/IRModeler/obj-intel64/IRModeler.so -- d8 poc.js
+
+## Output
+Formated JSON file - ir.json
