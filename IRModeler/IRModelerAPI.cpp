@@ -1437,7 +1437,7 @@ void write2Json() {
         jsonFile << "       \"added\": [";
         for (int i = 0; i < node->numberOfAdds; i++) {
             jsonFile << dec << node->addedNodeIds[i];
-            if (i < node->numberOfEdges-1) {
+            if (i < node->numberOfAdds-1) {
                 jsonFile << ",";
             }
         }
@@ -1446,7 +1446,7 @@ void write2Json() {
         jsonFile << "       \"removed\": [";
         for (int i = 0; i < node->numberOfRemoves; i++) {
             jsonFile << dec << node->removedNodeIds[i];
-            if (i < node->numberOfEdges-1) {
+            if (i < node->numberOfRemoves-1) {
                 jsonFile << ",";
             }
         }
