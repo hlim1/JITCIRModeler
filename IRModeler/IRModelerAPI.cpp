@@ -1420,7 +1420,7 @@ void write2Json() {
         }
         jsonFile << "]," << endl;
         // Write occupied memory location and the value informations
-        jsonFile << "       \"occupied\": {" << endl;
+        jsonFile << "       \"directValues\": {" << endl;
         for (int i = 0; i < node->numberOfLocs; i++) {
             jsonFile << "           \"" << dec << node->occupiedLocs[i] << "\": ";
             jsonFile << hex << "\"" << node->valuesInLocs[i] << "\"";
