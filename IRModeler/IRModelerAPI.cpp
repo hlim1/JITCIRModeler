@@ -11,6 +11,7 @@
 #include "IRModelerAPI.h"
 #include "DataOpsDefs.h"
 #include "Helpers.h"
+#include "Tracer.h"
 
 #include <cstring>
 #include <cassert>
