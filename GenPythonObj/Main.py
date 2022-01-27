@@ -32,4 +32,4 @@ if __name__ == "__main__":
     # All IRs generated with this Main.py will have the default IR ID.
     irId = 0
 
-    json2py.Json2PythonObj(irNodes, irId)
+    IRGraph = json2py.Json2PythonObj(irNodes, irId)

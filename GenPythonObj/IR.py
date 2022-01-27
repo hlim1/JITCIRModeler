@@ -22,4 +22,4 @@ class Node:
         self.added_nodes = []
         self.removed_nodes = []
         self.replaced_nodes = {}
-        self.occupied = {}
+        self.direct_vals = {}

@@ -18,21 +18,18 @@ from IR import Node
 DEFAULT_ID = -1
 UNAVAILABLE = -1
 
-def get_edges(node_id: int, edges: list, IR: IRGraph):
+def get_edges(edges: list, IR: IRGraph):
     """This function create, populate, and return new_edges,
-    which holds "self", node object, and/or UNAVAILABLE value.
+    which holds node object and/or UNAVAILABLE value.
     """
 
     new_edges = []
 
-    # Handle 3 cases:
-    # (1) Node pointing to itself. Add string 'self' and hanlde it later.
-    # (2) Node pointing to other nodes. Find and add node object to edge.
-    # (3) Node was removed from the edge. Add UNAVAILABLE.
+    # Handle 2 cases:
+    # (1)
+    # (2)
     for edge_node_id in edges:
-        if edge_node_id > UNAVAILABLE and edge_node_id == node_id:
-            new_edges.append("self")
-        elif edge_node_id > UNAVAILABLE and edge_node_id != node_id:
+        if edge_node_id > UNAVAILABLE:
             for node in IR.nodes:
                 if edge_node_id == node.id:
                     new_edges.append(node)
@@ -41,10 +38,56 @@ def get_edges(node_id: int, edges: list, IR: IRGraph):
 
     return new_edges
 
-def get_adds(node_id: int, added: list, IR: IRGraph):
+def get_adds(added: list, IR: IRGraph):
+    """This function create, populate, and return new_adds,
+    which holds node object.
     """
+
+    new_adds = []
+
+    # Handle 1 cases:
+    # (1) Node pointing to other nodes. Find and add node object to edge.
+    for add_node_id in added:
+        for node in IR.nodes:
+            if add_node_id == node.id:
+                new_adds.append(node)
+
+    return new_adds
+
+def get_removes(removed: list, IR: IRGraph):
+    """This function create, populate, and return new_removes,
+    which holds node object.
     """
-    pass
+
+    new_removes = []
+
+    # Handle 1 cases:
+    # (1) Node pointing to other nodes. Find and add node object to edge.
+    for rem_node_id in removed:
+        for node in IR.nodes:
+            if rem_node_id == node.id:
+                new_removes.append(node)
+
+    return new_removes
+
+def get_replaces(replaced: dict, IR: IRGraph):
+    """This function create, populate, and return new_replaces,
+    which holds from-node to to-node element.
+    """
+
+    new_replaces = {}
+
+    for from_id, to_id in replaced.items():
+        from_node = None
+        to_node = None
+        for node in IR.nodes:
+            if node.id == from_id:
+                from_node = node
+            elif node.id == to_node:
+                to_node = node
+        new_replaces[from_node] = to_node
+
+    return new_replaces
 
 def Json2PythonObj(irNodes: list, irId: int):
     """This function is the main function to form a python object from
@@ -63,5 +106,27 @@ def Json2PythonObj(irNodes: list, irId: int):
         pNode.size = jNode["size"]
         pNode.opcode = jNode["opcode"]
         pNode.address = jNode["address"]
-        pNode.edges = get_edges(jNode["id"], jNode["edges"], IR)
-        pNode.added_nodes = get_adds(jNode["id"], jNode["added"], IR)
+        pNode.direct_vals = jNode["directValues"]
+
+        IR.nodes.append(pNode)
+
+    pNodeCtr = 0
+    for jNode in irNodes:
+        edges = get_edges(jNode["edges"], IR)
+        added_nodes = get_adds(jNode["added"], IR)
+        removed_nodes = get_removes(jNode["removed"], IR)
+        replaced_nodes = get_replaces(jNode["replaced"], IR)
+
+        pNode = IR.nodes[pNodeCtr]
+        assert (
+                pNode.id == jNode["id"]
+        ), f"ERROR: pNode.id ({pNode.id}) != jNode.id({jNode.id}). pNodeCtr = {pNodeCtr}."
+        pNode.edges = edges
+        pNode.added_node = added_nodes
+        pNode.removed_nodes = removed_nodes
+        pNode.replaced_nodes = replaced_nodes
+        IR.nodes[pNodeCtr] = pNode
+
+        pNodeCtr += 1
+    
+    return IR
