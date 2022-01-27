@@ -11,11 +11,13 @@
 #include "IRModelerAPI.h"
 #include "DataOpsDefs.h"
 #include "Helpers.h"
+#include "Tracer.h"
 
 #include <cstring>
 #include <cassert>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 
 using std::cout;
 using std::endl;
@@ -1381,15 +1383,104 @@ void setupFile(UINT16 infoSelect) {
     fwrite(&infoSelHeader, sizeof(InfoSelHeader), 1, traceFile);
 }
 
+// ===========================================================
+
+void write2Json() {
+    ofstream jsonFile;
+    jsonFile.open("ir.json");
+
+    jsonFile << "{" << endl;
+    for (int i = 0; i < IRGraph->lastNodeId; i++) {
+        Node *node = IRGraph->nodes[i];
+        jsonFile << "   {" << endl;
+        jsonFile << "       \"id\": " << dec << node->id << "," << endl; 
+        jsonFile << "       \"alive\": "; 
+        if (node->alive) {
+            jsonFile << "true," << endl;
+        }
+        else {
+            jsonFile << "false," << endl;
+        }
+        jsonFile << "       \"address\": \"" << hex << node->intAddress << "\"," << endl; 
+        jsonFile << "       \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
+        jsonFile << "       \"size\": " << dec << node->size << "," << endl; 
+        // Write edge information.
+        jsonFile << "       \"edges\": [";
+        for (int i = 0; i < node->numberOfEdges; i++) {
+            if (node->edgeNodes[i] != NULL) {
+                jsonFile << dec << node->edgeNodes[i]->id;
+            }
+            else {
+                jsonFile << dec << INT_INVALID;
+            }
+
+            if (i < node->numberOfEdges-1) {
+                jsonFile << ",";
+            }
+        }
+        jsonFile << "]," << endl;
+        // Write occupied memory location and the value informations
+        jsonFile << "       \"occupied\": {" << endl;
+        for (int i = 0; i < node->numberOfLocs; i++) {
+            jsonFile << "           \"" << dec << node->occupiedLocs[i] << "\": ";
+            jsonFile << hex << "\"" << node->valuesInLocs[i] << "\"";
+
+            if (i < node->numberOfLocs-1) {
+                jsonFile << "," << endl;
+            }
+            else {
+                jsonFile << endl;
+            }
+        }
+        jsonFile << "       }," << endl;
+        // Write added optimization information.
+        jsonFile << "       \"added\": [";
+        for (int i = 0; i < node->numberOfAdds; i++) {
+            jsonFile << dec << node->addedNodeIds[i];
+            if (i < node->numberOfEdges-1) {
+                jsonFile << ",";
+            }
+        }
+        jsonFile << "]," << endl;
+        // Write removed optimization information.
+        jsonFile << "       \"removed\": [";
+        for (int i = 0; i < node->numberOfRemoves; i++) {
+            jsonFile << dec << node->removedNodeIds[i];
+            if (i < node->numberOfEdges-1) {
+                jsonFile << ",";
+            }
+        }
+        jsonFile << "]," << endl;
+        // Write replaced optimization information..
+        jsonFile << "       \"replaced\": {" << endl;
+        for (int i = 0; i < node->numberOfReplaces; i++) {
+            jsonFile << "           \"" << dec << node->replacedNodeIds[i][0] << "\": ";
+            jsonFile << dec << "\"" << node->replacedNodeIds[i][1] << "\"";
+
+            if (i < node->numberOfReplaces-1) {
+                jsonFile << "," << endl;
+            }
+            else {
+                jsonFile << endl;
+            }
+        }
+        jsonFile << "       }" << endl;
+
+        if (i < IRGraph->lastNodeId-1) {
+            jsonFile << "   }," << endl;
+        }
+        else {
+            jsonFile << "   }" << endl;
+        }
+    }
+    jsonFile << "}" << endl;
+}
+
 /**
  * Function: endFile
  * Description:
  * Output:
  **/
 void endFile() {
-    
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        Node *node = IRGraph->nodes[i];
-        printNode(node);
-    }
+    write2Json();
 }

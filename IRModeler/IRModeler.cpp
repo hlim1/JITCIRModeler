@@ -17,8 +17,9 @@
 #include "ShadowMemory.h"
 #include "RegVector.h"
 #include "DataOpsDefs.h"
-#include "IRModelerAPI.h"
 #include "StringTable.h"
+#include "IRModelerAPI.h"
+#include "Tracer.h"
 
 #include <sys/stat.h> 
 #include <unistd.h>
