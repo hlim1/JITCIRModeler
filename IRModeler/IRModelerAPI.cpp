@@ -622,6 +622,11 @@ void printNode(Node *node) {
             cout << dec << INT_INVALID << endl;
         }
     }
+    cout << "Edge Add Optimization (fnOrderId: added node id):" << endl;
+    map<int, int>::iterator it1;
+    for (it1 = node->fnOrder2addNodeId.begin(); it1 != node->fnOrder2addNodeId.end(); ++it1) {
+        cout << dec << it1->first << ": " << it1->second << endl;
+    }
     cout << "Written values (Distance from block head -> value):" << endl;
     for (int i = 0; i < node->numberOfLocs; i++) {
         cout << "+" << dec << node->offsets[i] << " -> ";
@@ -643,6 +648,7 @@ void printNode(Node *node) {
     for (it2 = node->fnInfo.begin(); it2 != node->fnInfo.end(); ++it2) {
         cout << dec << it2->first << ": " << (it2->second).fnId << ", " << (it2->second).accessType << endl;
     }
+    cout << "--" << endl;
 }
 
 void printMap(map<ADDRINT,ADDRINT> mymap) {
@@ -978,10 +984,9 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         // If the location is not occupied edge, but the value is a node, handle edge 'addition'.
         else if (edge_idx == INT_INVALID && value_id != ADDRINT_INVALID) {
             Node *adding = IRGraph->nodes[value_id];
-            // Update 'this' node's 'add' optimization information.
-            node->addedNodeIds[node->numberOfAdds] = adding->id;
-            node->numberOfAdds++;
-
+            // Update node's 'add' optimization information.
+            node->fnOrder2addNodeId[IRGraph->fnOrderId] = adding->id;
+            
             // Add an edge from 'this' node to the node with 'value_id'. 
             node->edgeNodes[node->numberOfEdges] = adding;
             node->edgeAddrs[node->numberOfEdges] = location;
@@ -1526,14 +1531,20 @@ void write2Json() {
         }
         jsonFile << "       }," << endl;
         // Write added optimization information.
-        jsonFile << "       \"added\": [";
-        for (int i = 0; i < node->numberOfAdds; i++) {
-            jsonFile << dec << node->addedNodeIds[i];
-            if (i < node->numberOfAdds-1) {
-                jsonFile << ",";
+        jsonFile << "       \"added\": {" << endl;
+        int counter = 0;
+        map<int,int>::iterator itAdd;
+        for (itAdd = node->fnOrder2addNodeId.begin(); itAdd != node->fnOrder2addNodeId.end(); ++itAdd) {
+            jsonFile << "           \"" << dec << itAdd->first << "\":" << itAdd->second;
+            if (counter < int((node->fnOrder2addNodeId).size())-1) {
+                jsonFile << "," << endl;
             }
+            else {
+                jsonFile << endl;
+            }
+            counter++;
         }
-        jsonFile << "]," << endl;
+        jsonFile << "       }," << endl;
         // Write removed optimization information.
         jsonFile << "       \"removed\": [";
         for (int i = 0; i < node->numberOfRemoves; i++) {
@@ -1574,6 +1585,6 @@ void write2Json() {
  * Output:
  **/
 void endFile() {
-    //write2Json();
-    printNodes();
+    write2Json();
+    //printNodes();
 }

@@ -33,7 +33,7 @@ struct DirectValOpt {
 struct Node {
     Node() : 
         id(-1), alive(true), numberOfEdges(0), numberOfLocs(0),
-        numberOfAdds(0), numberOfReplaces(0), numberOfRemoves(0) {}
+        numberOfReplaces(0), numberOfRemoves(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -52,14 +52,14 @@ struct Node {
     ADDRINT valuesInLocs[MAX_LOCS];        // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
-    int     numberOfAdds;                           // counter to track the number of edge added happend.
     int     numberOfReplaces;                       // counter to track the number of edge replace happend.
     int     numberOfRemoves;                        // counter to track the number of edge remove happend.
-    int     addedNodeIds[MAX_NODES];                // track the node ids appended to this node edge(s).
     int     removedNodeIds[MAX_NODES];              // track the node ids removed from this node edge(s).
     int     removedEdgeIdx[MAX_NODES];              // track the index of removed node edge in the edgeNodes.
     int     replacedNodeIds[MAX_NODES][2];          // track the node ids replaced from and to this node edge(s).
     int     replacedEdgeIdx[MAX_NODES];             // track the index of replaced node edde in the edgeNodes.
+
+    std::map<int, int> fnOrder2addNodeId;           // track the function order id to the id of added node.
     std::map<int, DirectValOpt> fnOrder2dirValOpt;  // track the direct value change due to optimization.
     // Logging information.
     std::map<int, FnInfo> fnInfo;          // track of the functions accessed to this node.
