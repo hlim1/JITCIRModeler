@@ -632,10 +632,16 @@ void printNode(Node *node) {
             cout << hex << ADDRINT_INVALID << endl;
         }
     }
+    cout << "Direct values optimization information (fnOrderId: (offset: value from -> value to)):" << endl;
+    map<int, DirectValOpt>::iterator it;
+    for (it = node->fnOrder2dirValOpt.begin(); it != node->fnOrder2dirValOpt.end(); ++it) {
+        cout << dec << it->first << ": (" << (it->second).offset << ": ";
+        cout << hex << (it->second).valFrom << " -> " << (it->second).valTo << ")" << endl; 
+    }
     cout << "Function access information (accessOrder: fnId, accessType)" << endl;
-    map<int, FnInfo>::iterator it;
-    for (it = node->fnInfo.begin(); it != node->fnInfo.end(); ++it) {
-        cout << dec << it->first << ": " << it->second.fnId << ", " << it->second.accessType << endl;
+    map<int, FnInfo>::iterator it2;
+    for (it2 = node->fnInfo.begin(); it2 != node->fnInfo.end(); ++it2) {
+        cout << dec << it2->first << ": " << (it2->second).fnId << ", " << (it2->second).accessType << endl;
     }
 }
 
@@ -1003,12 +1009,21 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 if (is_direct && valueSize < 8) {
                     // Compute the offset first.
                     ADDRINT offset = location - node->blockHead;
+                    // Create a new DirectValOpt object.
+                    DirectValOpt directValOpt;
+                    directValOpt.offset = offset;
+
                     // Check if the offset already occupied with some value.
                     bool is_written = false;
                     for (int i = 0; i < node->numberOfLocs; i++) {
                         // If the offset is already a written location, then update the value
                         // and mark the is_written to true.
                         if (node->offsets[i] == offset) {
+                            // Update the directValOpt's valFrom, valTo, and is_update.
+                            directValOpt.valFrom = node->valuesInLocs[i];
+                            directValOpt.valTo = value;
+                            directValOpt.is_update = true;
+                            // Update the value.
                             node->valuesInLocs[i] = value;
                             is_written = true;
                             break;
@@ -1016,10 +1031,14 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                     }
                     // If is_written is false, then is a new value write. Thus, add the offset and value.
                     if (!is_written) {
+                        // Update the directValOpt's valTo.
+                        directValOpt.valTo = value;
+                        // Update offsets and valuesInLocs.
                         node->offsets[node->numberOfLocs] = offset;
                         node->valuesInLocs[node->numberOfLocs] = value;
                         node->numberOfLocs++;
                     }
+                    node->fnOrder2dirValOpt[IRGraph->fnOrderId] = directValOpt;
                     // Update function log information.
                     updateLogInfo(node, fnId, VALUE_CHANGE);
                 }
