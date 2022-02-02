@@ -366,12 +366,9 @@ bool is_direct_assignment(ADDRINT value) {
     bool is_direct_assignment = true;
 
     map<ADDRINT,MWInst>::iterator it;
-    for (it = writes.begin(); it != writes.end(); ++it) {
-        MWInst write = it->second;
-        if (value == write.location) {
-            is_direct_assignment = false;
-            break;
-        }
+    it = writes.find(value);
+    if (it != writes.end()) {
+        is_direct_assignment = false;
     }
 
     return is_direct_assignment;
