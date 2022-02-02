@@ -47,7 +47,7 @@ const int NODE_CREATORS_SIZE = 2;
 
 // Main modeled IR constructor function.
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
-void trackOptimization(ADDRINT location, ADDRINT value);
+void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId);
 
 
 // API functions for system-specifics.
@@ -78,10 +78,12 @@ bool fnInAllocs(std::string fn);
 bool fnInFormers(std::string fn);
 int compareValuetoIRNodes(ADDRINT value);
 int get_edge_idx(Node *node, ADDRINT address);
-bool is_direct_assignment(Node *node, ADDRINT value);
+bool is_direct_assignment(ADDRINT value);
+void updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);
+void printNodes();
 void printNode(Node *node);
 void printMap(std::map<ADDRINT,ADDRINT> mymap);
 
