@@ -600,7 +600,15 @@ void printUINT8(UINT8* arr, UINT32 size) {
     printf("%02x\n", arr[0]);
 }
 
+void printNodes() {
+
+    for (int i = 0; i < IRGraph->lastNodeId; i++) {
+        printNode(IRGraph->nodes[i]);
+    }
+}
+
 void printNode(Node *node) {
+
     cout << "ID: " << dec << node->id << "; ";
     cout << "Liveness: " << node->alive << "; ";
     cout << "Address: " << hex << node->intAddress << " (Block address: ";
@@ -626,6 +634,11 @@ void printNode(Node *node) {
         else {
             cout << hex << ADDRINT_INVALID << endl;
         }
+    }
+    cout << "Function access information (accessOrder: fnId, accessType)" << endl;
+    map<int, FnInfo>::iterator it;
+    for (it = node->fnInfo.begin(); it != node->fnInfo.end(); ++it) {
+        cout << dec << it->first << ": " << it->second.fnId << ", " << it->second.accessType << endl;
     }
 }
 
@@ -885,11 +898,11 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range) {
     }
 
     if (IRGraph->lastNodeId > 0) {
-        trackOptimization(write.location, write.value);
+        trackOptimization(write.location, write.value, fnId);
     }
 }
 
-void trackOptimization(ADDRINT location, ADDRINT value) {
+void trackOptimization(ADDRINT location, ADDRINT value, UINT32 fnId) {
 
     // Check if the current memory location belongs to any one of existing node.
     ADDRINT nodeId = ADDRINT_INVALID;
@@ -912,7 +925,7 @@ void trackOptimization(ADDRINT location, ADDRINT value) {
         ADDRINT value_id = compareValuetoIRNodes(value);
         // Check if the location is already occupied edge.
         int edge_idx = get_edge_idx(node, location);
-        // If the location is already occupied edge, handle edge removal or edge replace.
+        // If the location is an already occupied edge, handle edge removal or edge replace.
         if (edge_idx != INT_INVALID) {
             // If value is '0', which is to wipe out the memory location, handle edge 'removal'.
             if (value == WIPEMEM) {
@@ -962,6 +975,9 @@ void trackOptimization(ADDRINT location, ADDRINT value) {
             node->edgeNodes[node->numberOfEdges] = adding;
             node->edgeAddrs[node->numberOfEdges] = location;
             node->numberOfEdges++;
+
+            // Update function log information.
+            updateLogInfo(node, fnId, ADDITION);
         }
         // If the location belongs to some node block, but it's not an edge and the value is not a node.
         else if (edge_idx == INT_INVALID && value_id == ADDRINT_INVALID) {
@@ -974,7 +990,23 @@ void trackOptimization(ADDRINT location, ADDRINT value) {
     }
 }
 
+void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 
+    // Retrieve the function name from the table.
+    string fnName = strTable.get(fnId);
+
+    // Create a new FnInfo object and update it.
+    FnInfo fnInfo;
+    fnInfo.fnId = fnId;
+    fnInfo.accessType = accessType;
+
+    // Update the node's function info. map.
+    node->fnInfo[IRGraph->fnOrderId] = fnInfo;
+
+    // Update IR's function order id and map.
+    IRGraph->fnId2Name[fnId] = fnName;
+    IRGraph->fnOrderId++;
+}
 
 /**
  * Function: getFileBuf
@@ -1482,5 +1514,6 @@ void write2Json() {
  * Output:
  **/
 void endFile() {
-    write2Json();
+    //write2Json();
+    printNodes();
 }

@@ -56,7 +56,7 @@ struct Node {
 };
 
 struct IR {
-    IR() : id(-1), lastNodeId(0) {}
+    IR() : id(-1), lastNodeId(0), fnOrderId(0) {}
 
     int         id;                             // ir graph id.
     Node        *nodes[MAX_NODES];              // array holding ptrs to node objects.
