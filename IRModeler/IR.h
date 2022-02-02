@@ -2,9 +2,24 @@
 #define _IR_
 
 #include "pin.H"
+#include <map>
 
 const int MAX_NODES     = 1000;     // Max number of nodes.
 const int MAX_LOCS      = 100;      // Max number of locations between block head & tail.
+
+enum Access {
+    ADDITION,
+    REMOVAL,
+    REPLACE,
+    KILL,
+    VALCHANGE,
+    EVALUATE
+};
+
+struct FnInfo {
+    UINT32 fnId;        // function id that can be looked up in the `fnId2Name` map of IR.
+    Access accessType;  // function access type.
+};
 
 struct Node {
     Node() : 
@@ -36,16 +51,19 @@ struct Node {
     int     removedEdgeIdx[MAX_NODES];     // track the index of removed node edge in the edgeNodes.
     int     replacedNodeIds[MAX_NODES][2]; // track the node ids replaced from and to this node's edge(s).
     int     replacedEdgeIdx[MAX_NODES];    // track the index of replaced node edde in the edgeNodes.
+    // Logging information.
+    std::map<int, FnInfo> fnInfo;
 };
 
 struct IR {
     IR() : id(-1), lastNodeId(0) {}
 
-    int         id;                        // ir graph id.
-    Node        *nodes[MAX_NODES];         // array holding ptrs to node objects.
-    ADDRINT     nodeAddrs[MAX_NODES];      // array holding node addresses. For easy look up.
-    int         lastNodeId;                // id of a last node in the array.
+    int         id;                             // ir graph id.
+    Node        *nodes[MAX_NODES];              // array holding ptrs to node objects.
+    ADDRINT     nodeAddrs[MAX_NODES];           // array holding node addresses. For easy look up.
+    int         lastNodeId;                     // id of a last node in the array.
+    int         fnOrderId;                      // id indicating the order of function access.
+    std::map<UINT32, std::string> fnId2Name;    // map to hold function id to name for look up.
 };
-
 
 #endif
