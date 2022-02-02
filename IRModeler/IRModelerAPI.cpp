@@ -344,12 +344,12 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                 node->numberOfEdges++;
             }
             else if (edgeNodeId == INT_INVALID && write.location != node->intAddress) {
-                bool is_direct = is_direct_assignment(node, write.value);
+                bool is_direct = is_direct_assignment(write.value);
                 if (is_direct) {
                     // Compute the distance between the block head and the written location,
-                    // then write to node's occupiedLocs to track which locations are wrriten.
-                    ADDRINT dis2Head = write.location - blockHead;
-                    node->occupiedLocs[node->numberOfLocs] = dis2Head;
+                    // then write to node's offsets to track which locations are wrriten.
+                    ADDRINT offset = write.location - blockHead;
+                    node->offsets[node->numberOfLocs] = offset;
                     node->valuesInLocs[node->numberOfLocs] = write.value;
                     node->numberOfLocs++;
                 }
@@ -361,7 +361,7 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
     }
 }
 
-bool is_direct_assignment(Node *node, ADDRINT value) {
+bool is_direct_assignment(ADDRINT value) {
 
     bool is_direct_assignment = true;
 
@@ -627,7 +627,7 @@ void printNode(Node *node) {
     }
     cout << "Written values (Distance from block head -> value):" << endl;
     for (int i = 0; i < node->numberOfLocs; i++) {
-        cout << "+" << dec << node->occupiedLocs[i] << " -> ";
+        cout << "+" << dec << node->offsets[i] << " -> ";
         if (node->valuesInLocs[i] != ADDRINT_INVALID) {
             cout << hex << node->valuesInLocs[i] << endl;
         }
@@ -898,21 +898,23 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range) {
     }
 
     if (IRGraph->lastNodeId > 0) {
-        trackOptimization(write.location, write.value, fnId);
+        trackOptimization(write.location, write.value, data.memWriteSize, fnId);
     }
 }
 
-void trackOptimization(ADDRINT location, ADDRINT value, UINT32 fnId) {
+void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId) {
 
     // Check if the current memory location belongs to any one of existing node.
     ADDRINT nodeId = ADDRINT_INVALID;
-    bool is_node = false;
+    bool is_node_addr = false;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
         if (location > node->blockHead && location < node->blockTail) {
+            // If the writing location is within the range of one node, then get the node id.
             nodeId = node->id;
+            // If the writing location is the address of a node, then mark 'is_node_addr' to true.
             if (location == node->intAddress) {
-                is_node = true;
+                is_node_addr = true;
             }
             break;
         }
@@ -943,6 +945,9 @@ void trackOptimization(ADDRINT location, ADDRINT value, UINT32 fnId) {
 
                     // Set the removed edge to NULL.
                     node->edgeNodes[edge_idx] = NULL;
+
+                    // Update function log information.
+                    updateLogInfo(node, fnId, REMOVAL);
                 }
             }
             // If value is one of the existing nodes, handle edge 'replace'.
@@ -962,6 +967,9 @@ void trackOptimization(ADDRINT location, ADDRINT value, UINT32 fnId) {
 
                 // Replace existing edge node with the node with 'value_id'.
                 node->edgeNodes[edge_idx] = to;
+
+                // Update function log information.
+                updateLogInfo(node, fnId, REPLACE);
             }
         }
         // If the location is not occupied edge, but the value is a node, handle edge 'addition'.
@@ -983,9 +991,12 @@ void trackOptimization(ADDRINT location, ADDRINT value, UINT32 fnId) {
         else if (edge_idx == INT_INVALID && value_id == ADDRINT_INVALID) {
             // Node's are being destroyed and the location is being wiped by writing '0'.
             // We check such pattern in the instruction and mark the node dead.
-            if (is_node && value == WIPEMEM) {
+            if (is_node_addr && value == WIPEMEM) {
                 node->alive = false;
+                // Update function log information.
+                updateLogInfo(node, fnId, KILL);
             }
+            
         }
     }
 }
@@ -1454,7 +1465,7 @@ void write2Json() {
         // Write occupied memory location and the value informations
         jsonFile << "       \"directValues\": {" << endl;
         for (int i = 0; i < node->numberOfLocs; i++) {
-            jsonFile << "           \"" << dec << node->occupiedLocs[i] << "\": ";
+            jsonFile << "           \"" << dec << node->offsets[i] << "\": ";
             jsonFile << hex << "\"" << node->valuesInLocs[i] << "\"";
 
             if (i < node->numberOfLocs-1) {

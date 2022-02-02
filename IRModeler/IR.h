@@ -12,7 +12,7 @@ enum Access {
     REMOVAL,
     REPLACE,
     KILL,
-    VALCHANGE,
+    VALUE_CHANGE,
     EVALUATE
 };
 
@@ -39,7 +39,7 @@ struct Node {
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
     // Metadata information.
-    ADDRINT occupiedLocs[MAX_LOCS];        // tracks occupied memory locations between the block head & tail.
+    ADDRINT offsets[MAX_LOCS];             // tracks occupied memory locations between the block head & tail.
     ADDRINT valuesInLocs[MAX_LOCS];        // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
