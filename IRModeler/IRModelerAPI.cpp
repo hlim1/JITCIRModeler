@@ -996,7 +996,40 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 // Update function log information.
                 updateLogInfo(node, fnId, KILL);
             }
-            
+            // If the write is happening at non-node address location, then check for
+            // the value assignment (direct & indirect).
+            else if (!is_node_addr) {
+                bool is_direct = is_direct_assignment(value);
+                // TODO: 'valueSize < 8' is to prevent considering the memory address is considered as
+                // a value with an assmption is that the address's size is 8. This is not a good approach
+                // so we need to update it with more appropriate way.
+                if (is_direct && valueSize < 8) {
+                    // Compute the offset first.
+                    ADDRINT offset = location - node->blockHead;
+                    // Check if the offset already occupied with some value.
+                    bool is_written = false;
+                    for (int i = 0; i < node->numberOfLocs; i++) {
+                        // If the offset is already a written location, then update the value
+                        // and mark the is_written to true.
+                        if (node->offsets[i] == offset) {
+                            node->valuesInLocs[i] = value;
+                            is_written = true;
+                            break;
+                        }
+                    }
+                    // If is_written is false, then is a new value write. Thus, add the offset and value.
+                    if (!is_written) {
+                        node->offsets[node->numberOfLocs] = offset;
+                        node->valuesInLocs[node->numberOfLocs] = value;
+                        node->numberOfLocs++;
+                    }
+                    // Update function log information.
+                    updateLogInfo(node, fnId, VALUE_CHANGE);
+                }
+                else {
+                    // TODO: Need to handle indirect (pointing to non-ir object) assignment.
+                }
+            }
         }
     }
 }
