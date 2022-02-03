@@ -947,10 +947,8 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 // We only count the edge removal only if the edge has a valid node, so we handle
                 // this case by checking that the returned value from the earlier line is NOT NULL.
                 if (target != NULL) {
-                    // Update 'this' node's 'remove' optimization information.
-                    node->removedNodeIds[node->numberOfRemoves] = target->id;
-                    node->removedEdgeIdx[node->numberOfRemoves] = edge_idx;
-                    node->numberOfRemoves++;
+                    // Update node's 'remove' optimization information.
+                    node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
 
                     // Set the removed edge to NULL.
                     node->edgeNodes[edge_idx] = NULL;
@@ -1546,14 +1544,20 @@ void write2Json() {
         }
         jsonFile << "       }," << endl;
         // Write removed optimization information.
-        jsonFile << "       \"removed\": [";
-        for (int i = 0; i < node->numberOfRemoves; i++) {
-            jsonFile << dec << node->removedNodeIds[i];
-            if (i < node->numberOfRemoves-1) {
-                jsonFile << ",";
+        jsonFile << "       \"removed\": {" << endl;
+        counter = 0;
+        map<int,int>::iterator itRem;
+        for (itRem = node->fnOrder2remNodeId.begin(); itRem != node->fnOrder2remNodeId.end(); ++itRem) {
+            jsonFile << "           \"" << dec << itRem->first << "\":" << itRem->second;
+            if (counter < int((node->fnOrder2remNodeId).size())-1) {
+                jsonFile << "," << endl;
             }
+            else {
+                jsonFile << endl;
+            }
+            counter++;
         }
-        jsonFile << "]," << endl;
+        jsonFile << "       }," << endl;
         // Write replaced optimization information..
         jsonFile << "       \"replaced\": {" << endl;
         for (int i = 0; i < node->numberOfReplaces; i++) {
