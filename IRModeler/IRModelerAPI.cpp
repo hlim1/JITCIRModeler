@@ -1567,14 +1567,15 @@ void write2Json() {
         jsonFile << "           \"replaced\": {" << endl;
         map<int,ReplacedInfo>::iterator itRep;
         for (itRep = node->fnOrder2repInfo.begin(); itRep != node->fnOrder2repInfo.end(); ++itRep) {
-            jsonFile << "               \"" << dec << itRep->first << "\": [";
-            jsonFile << (itRep->second).nodeIdFrom << ",";
-            jsonFile << (itRep->second).nodeIdTo << "]";
+            jsonFile << "               \"" << dec << itRep->first << "\": {" << endl;
+            jsonFile << "                   \"from\":" << (itRep->second).nodeIdFrom << "," << endl;
+            jsonFile << "                   \"to\":" << (itRep->second).nodeIdTo << endl;
+
             if (counter < int((node->fnOrder2repInfo).size())-1) {
-                jsonFile << "," << endl;
+                jsonFile << "                }," << endl;
             }
             else {
-                jsonFile << endl;
+                jsonFile << "                }" << endl;
             }
             counter++;
         }
