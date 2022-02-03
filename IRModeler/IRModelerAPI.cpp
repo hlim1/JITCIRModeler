@@ -960,17 +960,18 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
             // If value is one of the existing nodes, handle edge 'replace'.
             else if (value_id != ADDRINT_INVALID) {
                 Node *to = IRGraph->nodes[value_id];
-                // Update 'this' node's 'replace' optimization information.
+                ReplacedInfo replacedInfo;
+                // Update node's 'replace' optimization information.
                 if (node->edgeNodes[edge_idx] != NULL) {
                     Node *from = node->edgeNodes[edge_idx];
-                    node->replacedNodeIds[node->numberOfReplaces][0] = from->id;
-                    node->replacedNodeIds[node->numberOfReplaces][1] = to->id;
+                    replacedInfo.nodeIdFrom = from->id;
+                    replacedInfo.nodeIdTo = to->id;
                 }
                 else {
-                    node->replacedNodeIds[node->numberOfReplaces][0] = INT_INVALID;
-                    node->replacedNodeIds[node->numberOfReplaces][1] = to->id;
+                    replacedInfo.nodeIdFrom = INT_INVALID;
+                    replacedInfo.nodeIdTo = to->id;
                 }
-                node->numberOfReplaces++;
+                node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
 
                 // Replace existing edge node with the node with 'value_id'.
                 node->edgeNodes[edge_idx] = to;
@@ -1529,8 +1530,8 @@ void write2Json() {
         }
         jsonFile << "       }," << endl;
         // Write added optimization information.
-        jsonFile << "       \"added\": {" << endl;
         int counter = 0;
+        jsonFile << "       \"added\": {" << endl;
         map<int,int>::iterator itAdd;
         for (itAdd = node->fnOrder2addNodeId.begin(); itAdd != node->fnOrder2addNodeId.end(); ++itAdd) {
             jsonFile << "           \"" << dec << itAdd->first << "\":" << itAdd->second;
@@ -1544,8 +1545,8 @@ void write2Json() {
         }
         jsonFile << "       }," << endl;
         // Write removed optimization information.
-        jsonFile << "       \"removed\": {" << endl;
         counter = 0;
+        jsonFile << "       \"removed\": {" << endl;
         map<int,int>::iterator itRem;
         for (itRem = node->fnOrder2remNodeId.begin(); itRem != node->fnOrder2remNodeId.end(); ++itRem) {
             jsonFile << "           \"" << dec << itRem->first << "\":" << itRem->second;
@@ -1559,17 +1560,20 @@ void write2Json() {
         }
         jsonFile << "       }," << endl;
         // Write replaced optimization information..
+        counter = 0;
         jsonFile << "       \"replaced\": {" << endl;
-        for (int i = 0; i < node->numberOfReplaces; i++) {
-            jsonFile << "           \"" << dec << node->replacedNodeIds[i][0] << "\": ";
-            jsonFile << dec << "\"" << node->replacedNodeIds[i][1] << "\"";
-
-            if (i < node->numberOfReplaces-1) {
+        map<int,ReplacedInfo>::iterator itRep;
+        for (itRep = node->fnOrder2repInfo.begin(); itRep != node->fnOrder2repInfo.end(); ++itRep) {
+            jsonFile << "           \"" << dec << itRep->first << "\": [";
+            jsonFile << (itRep->second).nodeIdFrom << ",";
+            jsonFile << (itRep->second).nodeIdTo << "]";
+            if (counter < int((node->fnOrder2repInfo).size())-1) {
                 jsonFile << "," << endl;
             }
             else {
                 jsonFile << endl;
             }
+            counter++;
         }
         jsonFile << "       }" << endl;
 

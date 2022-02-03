@@ -8,15 +8,18 @@ const int MAX_NODES     = 1000;     // Max number of nodes.
 const int MAX_LOCS      = 100;      // Max number of locations between block head & tail.
 
 enum Access {
-    ADDITION,
-    REMOVAL,
-    REPLACE,
-    KILL,
-    VALUE_CHANGE,
-    EVALUATE
+    INVALID=-1,
+    ADDITION=0,
+    REMOVAL=1,
+    REPLACE=2,
+    KILL=3,
+    VALUE_CHANGE=4,
+    EVALUATE=5
 };
 
 struct FnInfo {
+    FnInfo(): fnId(-1), accessType(INVALID) {}
+
     UINT32 fnId;        // function id that can be looked up in the `fnId2Name` map of IR.
     Access accessType;  // function access type.
 };
@@ -31,14 +34,15 @@ struct DirectValOpt {
 };
 
 struct ReplacedInfo {
+    ReplacedInfo(): nodeIdFrom(-1), nodeIdTo(-1) {}
+
     int nodeIdFrom;     // node id that exist in the edge to be repleced.
-    int nodeIfTo;       // node id that is replacing the existing edge node.
+    int nodeIdTo;       // node id that is replacing the existing edge node.
 };
 
 struct Node {
     Node() : 
-        id(-1), alive(true), numberOfEdges(0), numberOfLocs(0),
-        numberOfReplaces(0) {}
+        id(-1), alive(true), numberOfEdges(0), numberOfLocs(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -57,13 +61,9 @@ struct Node {
     ADDRINT valuesInLocs[MAX_LOCS];        // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
-    int     numberOfReplaces;                       // counter to track the number of edge replace happend.
-    int     replacedNodeIds[MAX_NODES][2];          // track the node ids replaced from and to this node edge(s).
-    int     replacedEdgeIdx[MAX_NODES];             // track the index of replaced node edde in the edgeNodes.
-
     std::map<int, int> fnOrder2addNodeId;           // track the function order id to the id of added node.
-    std::map<int, int> fnOrder2remNodeId;           //
-    std::map<int, ReplacedInfo> fnOrder2repInfo;    //
+    std::map<int, int> fnOrder2remNodeId;           // track the function order id to the id of removed node.
+    std::map<int, ReplacedInfo> fnOrder2repInfo;    // track the function order id to the replaced info object.
     std::map<int, DirectValOpt> fnOrder2dirValOpt;  // track the direct value change due to optimization.
     // Logging information.
     std::map<int, FnInfo> fnInfo;          // track of the functions accessed to this node.
