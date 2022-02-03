@@ -1485,23 +1485,26 @@ void write2Json() {
     ofstream jsonFile;
     jsonFile.open("ir.json");
 
-    jsonFile << "[" << endl;
+    int counter = 0;
+
+    jsonFile << "{" << endl;
+    jsonFile << "   \"nodes\": [" << endl;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
-        jsonFile << "   {" << endl;
-        jsonFile << "       \"id\": " << dec << node->id << "," << endl; 
-        jsonFile << "       \"alive\": "; 
+        jsonFile << "       {" << endl;
+        jsonFile << "           \"id\": " << dec << node->id << "," << endl; 
+        jsonFile << "           \"alive\": "; 
         if (node->alive) {
             jsonFile << "true," << endl;
         }
         else {
             jsonFile << "false," << endl;
         }
-        jsonFile << "       \"address\": \"" << hex << node->intAddress << "\"," << endl; 
-        jsonFile << "       \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
-        jsonFile << "       \"size\": " << dec << node->size << "," << endl; 
+        jsonFile << "           \"address\": \"" << hex << node->intAddress << "\"," << endl; 
+        jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
+        jsonFile << "           \"size\": " << dec << node->size << "," << endl; 
         // Write edge information.
-        jsonFile << "       \"edges\": [";
+        jsonFile << "           \"edges\": [";
         for (int i = 0; i < node->numberOfEdges; i++) {
             if (node->edgeNodes[i] != NULL) {
                 jsonFile << dec << node->edgeNodes[i]->id;
@@ -1516,9 +1519,9 @@ void write2Json() {
         }
         jsonFile << "]," << endl;
         // Write occupied memory location and the value informations
-        jsonFile << "       \"directValues\": {" << endl;
+        jsonFile << "           \"directValues\": {" << endl;
         for (int i = 0; i < node->numberOfLocs; i++) {
-            jsonFile << "           \"" << dec << node->offsets[i] << "\": ";
+            jsonFile << "               \"" << dec << node->offsets[i] << "\": ";
             jsonFile << hex << "\"" << node->valuesInLocs[i] << "\"";
 
             if (i < node->numberOfLocs-1) {
@@ -1528,13 +1531,13 @@ void write2Json() {
                 jsonFile << endl;
             }
         }
-        jsonFile << "       }," << endl;
+        jsonFile << "           }," << endl;
         // Write added optimization information.
-        int counter = 0;
-        jsonFile << "       \"added\": {" << endl;
+        counter = 0;
+        jsonFile << "           \"added\": {" << endl;
         map<int,int>::iterator itAdd;
         for (itAdd = node->fnOrder2addNodeId.begin(); itAdd != node->fnOrder2addNodeId.end(); ++itAdd) {
-            jsonFile << "           \"" << dec << itAdd->first << "\":" << itAdd->second;
+            jsonFile << "               \"" << dec << itAdd->first << "\":" << itAdd->second;
             if (counter < int((node->fnOrder2addNodeId).size())-1) {
                 jsonFile << "," << endl;
             }
@@ -1543,13 +1546,13 @@ void write2Json() {
             }
             counter++;
         }
-        jsonFile << "       }," << endl;
+        jsonFile << "           }," << endl;
         // Write removed optimization information.
         counter = 0;
-        jsonFile << "       \"removed\": {" << endl;
+        jsonFile << "           \"removed\": {" << endl;
         map<int,int>::iterator itRem;
         for (itRem = node->fnOrder2remNodeId.begin(); itRem != node->fnOrder2remNodeId.end(); ++itRem) {
-            jsonFile << "           \"" << dec << itRem->first << "\":" << itRem->second;
+            jsonFile << "               \"" << dec << itRem->first << "\":" << itRem->second;
             if (counter < int((node->fnOrder2remNodeId).size())-1) {
                 jsonFile << "," << endl;
             }
@@ -1558,33 +1561,96 @@ void write2Json() {
             }
             counter++;
         }
-        jsonFile << "       }," << endl;
-        // Write replaced optimization information..
+        jsonFile << "           }," << endl;
+        // Write replaced optimization information.
         counter = 0;
-        jsonFile << "       \"replaced\": {" << endl;
+        jsonFile << "           \"replaced\": {" << endl;
         map<int,ReplacedInfo>::iterator itRep;
         for (itRep = node->fnOrder2repInfo.begin(); itRep != node->fnOrder2repInfo.end(); ++itRep) {
-            jsonFile << "           \"" << dec << itRep->first << "\": [";
-            jsonFile << (itRep->second).nodeIdFrom << ",";
-            jsonFile << (itRep->second).nodeIdTo << "]";
+            jsonFile << "               \"" << dec << itRep->first << "\": {" << endl;
+            jsonFile << "                   \"from\":" << (itRep->second).nodeIdFrom << "," << endl;
+            jsonFile << "                   \"to\":" << (itRep->second).nodeIdTo << endl;
+
             if (counter < int((node->fnOrder2repInfo).size())-1) {
-                jsonFile << "," << endl;
+                jsonFile << "                }," << endl;
             }
             else {
-                jsonFile << endl;
+                jsonFile << "                }" << endl;
             }
             counter++;
         }
-        jsonFile << "       }" << endl;
+        jsonFile << "           }," << endl;
+        // Write direct value optimization information.
+        counter = 0;
+        jsonFile << "           \"directValueOpt\": {" << endl;
+        map<int, DirectValOpt>::iterator itDir;
+        for (itDir = node->fnOrder2dirValOpt.begin(); itDir != node->fnOrder2dirValOpt.end(); ++itDir) {
+            jsonFile << "               \"" << dec << itDir->first << "\": {" << endl;
+            jsonFile << "                   \"offset\":" << dec << (itDir->second).offset << "," << endl;
+            jsonFile << "                   \"valFrom\":\"" << hex << (itDir->second).valFrom << "\"," << endl;
+            jsonFile << "                   \"valTo\":\"" << hex << (itDir->second).valTo << "\"," << endl;
+            if ((itDir->second).is_update ) {
+                jsonFile << "                   \"is_update\": true" << endl;
+            }
+            else {
+                jsonFile << "                   \"is_update\": false" << endl;
+            }
 
+            if (counter < int((node->fnOrder2dirValOpt).size())-1) {
+                jsonFile << "               }," << endl;
+            }
+            else {
+                jsonFile << "               }" << endl;
+            }
+            counter++;
+        }
+        jsonFile << "           }," << endl;
+        // Function access log information.
+        counter = 0;
+        jsonFile << "           \"fnAccess\": {" << endl;
+        map<int, FnInfo>::iterator itFnInfo;
+        for (itFnInfo = node->fnInfo.begin(); itFnInfo != node->fnInfo.end(); ++itFnInfo) {
+            jsonFile << "               \"" << dec << itFnInfo->first << "\": {" << endl;
+            jsonFile << "                   \"fnId\":" << dec << (itFnInfo->second).fnId << "," << endl;
+            jsonFile << "                   \"type\":" << dec << (itFnInfo->second).accessType << endl;
+
+            if (counter < int((node->fnInfo).size())-1) {
+                jsonFile << "               }," << endl;
+            }
+            else {
+                jsonFile << "               }" << endl;
+            }
+            counter++;
+
+        }
+        jsonFile << "           }" << endl;
+        // Closing
         if (i < IRGraph->lastNodeId-1) {
-            jsonFile << "   }," << endl;
+            jsonFile << "       }," << endl;
         }
         else {
-            jsonFile << "   }" << endl;
+            jsonFile << "       }" << endl;
         }
     }
-    jsonFile << "]" << endl;
+    jsonFile << "   ]," << endl;
+    // Print function information.
+    counter = 0;
+    jsonFile << "   \"fnId2Name\": {" << endl;
+    map<UINT32, std::string>::iterator itFnId2Name;
+    for (itFnId2Name = IRGraph->fnId2Name.begin(); itFnId2Name != IRGraph->fnId2Name.end(); ++itFnId2Name) {
+        jsonFile << "       \"" << dec << itFnId2Name->first << "\":";
+        jsonFile << "\"" << itFnId2Name->second << "\"";
+
+        if (counter < int((IRGraph->fnId2Name).size())-1) {
+            jsonFile << "," << endl;
+        }
+        else {
+            jsonFile << endl;
+        }
+        counter++;
+    }
+    jsonFile << "   }" << endl;
+    jsonFile << "}" << endl;
 }
 
 /**
@@ -1594,5 +1660,4 @@ void write2Json() {
  **/
 void endFile() {
     write2Json();
-    //printNodes();
 }

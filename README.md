@@ -20,3 +20,57 @@ e.g.,
 
 ## Output
 Formated JSON file - ir.json
+
+## JSON File Specification
+```
+{
+    "nodes"[
+        {
+            "id":node id number,
+            "alive":true or false,
+            "address":"node address",
+            "opcode":"node opcode",
+            "size":node size number,
+            "edges":[list of edge node ids],
+            "directValues": {
+                "offset":"value"
+            },
+            "added": {
+                "fnOrderId":added node id number
+            },
+            "removed": {
+                "fnOrderId":removed node id number
+            },
+            "replaced": {
+                "fnOrderId": {
+                    "from":replaced node id number,
+                    "to":replacing node id number
+                }
+            },
+            "directValueOpt": {
+                "fnOrderId": {
+                    "offset":offset from the block head address,
+                    "valFrom":"value changed from",
+                    "valTo":"value changed to",
+                    "is_update":true or false
+                }
+            },
+            "fnAccess": {
+                "fnOrderId": {
+                    "fnId": function id number,
+                    "type": access type number
+                }
+            }
+        }
+    ],
+    "fnId2Name": {
+        "fnId": "function name"
+    }
+}
+```
+
+```"alive"```: Boolean to indicate whether the node was killed at the end of JIT compilation.
+
+```"fnOrderId"```: Function execution order id.
+
+```"is_update"```: Boolean to indicate whether the direct value optimization was for updating the existing value or adding a new value to the new location.
