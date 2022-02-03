@@ -1485,8 +1485,9 @@ void write2Json() {
     ofstream jsonFile;
     jsonFile.open("ir.json");
 
-    jsonFile << "{" << endl;
+    int counter = 0;
 
+    jsonFile << "{" << endl;
     jsonFile << "   \"nodes\": [" << endl;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
@@ -1532,7 +1533,7 @@ void write2Json() {
         }
         jsonFile << "           }," << endl;
         // Write added optimization information.
-        int counter = 0;
+        counter = 0;
         jsonFile << "           \"added\": {" << endl;
         map<int,int>::iterator itAdd;
         for (itAdd = node->fnOrder2addNodeId.begin(); itAdd != node->fnOrder2addNodeId.end(); ++itAdd) {
@@ -1581,13 +1582,13 @@ void write2Json() {
         // Write direct value optimization information.
         counter = 0;
         jsonFile << "           \"directValueOpt\": {" << endl;
-        map<int, DirectValOpt>::iterator itDirOpt;
-        for (itDirOpt = node->fnOrder2dirValOpt.begin(); itDirOpt != node->fnOrder2dirValOpt.end(); ++itDirOpt) {
-            jsonFile << "               \"" << dec << itDirOpt->first << "\": {" << endl;
-            jsonFile << "                   \"offset\":" << dec << (itDirOpt->second).offset << "," << endl;
-            jsonFile << "                   \"valFrom\":\"" << hex << (itDirOpt->second).valFrom << "\"," << endl;
-            jsonFile << "                   \"valTo\":\"" << hex << (itDirOpt->second).valTo << "\"," << endl;
-            if ((itDirOpt->second).is_update ) {
+        map<int, DirectValOpt>::iterator itDir;
+        for (itDir = node->fnOrder2dirValOpt.begin(); itDir != node->fnOrder2dirValOpt.end(); ++itDir) {
+            jsonFile << "               \"" << dec << itDir->first << "\": {" << endl;
+            jsonFile << "                   \"offset\":" << dec << (itDir->second).offset << "," << endl;
+            jsonFile << "                   \"valFrom\":\"" << hex << (itDir->second).valFrom << "\"," << endl;
+            jsonFile << "                   \"valTo\":\"" << hex << (itDir->second).valTo << "\"," << endl;
+            if ((itDir->second).is_update ) {
                 jsonFile << "                   \"is_update\": true" << endl;
             }
             else {
@@ -1602,6 +1603,25 @@ void write2Json() {
             }
             counter++;
         }
+        jsonFile << "           }," << endl;
+        // Function access log information.
+        counter = 0;
+        jsonFile << "           \"fnAccess\": {" << endl;
+        map<int, FnInfo>::iterator itFnInfo;
+        for (itFnInfo = node->fnInfo.begin(); itFnInfo != node->fnInfo.end(); ++itFnInfo) {
+            jsonFile << "               \"" << dec << itFnInfo->first << "\": {" << endl;
+            jsonFile << "                   \"fnId\":" << dec << (itFnInfo->second).fnId << "," << endl;
+            jsonFile << "                   \"type\":" << dec << (itFnInfo->second).accessType << endl;
+
+            if (counter < int((node->fnInfo).size())-1) {
+                jsonFile << "               }," << endl;
+            }
+            else {
+                jsonFile << "               }" << endl;
+            }
+            counter++;
+
+        }
         jsonFile << "           }" << endl;
         // Closing
         if (i < IRGraph->lastNodeId-1) {
@@ -1611,7 +1631,24 @@ void write2Json() {
             jsonFile << "       }" << endl;
         }
     }
-    jsonFile << "   ]" << endl;
+    jsonFile << "   ]," << endl;
+    // Print function information.
+    counter = 0;
+    jsonFile << "   \"fnId2Name\": {" << endl;
+    map<UINT32, std::string>::iterator itFnId2Name;
+    for (itFnId2Name = IRGraph->fnId2Name.begin(); itFnId2Name != IRGraph->fnId2Name.end(); ++itFnId2Name) {
+        jsonFile << "       \"" << dec << itFnId2Name->first << "\":";
+        jsonFile << "\"" << itFnId2Name->second << "\"";
+
+        if (counter < int((IRGraph->fnId2Name).size())-1) {
+            jsonFile << "," << endl;
+        }
+        else {
+            jsonFile << endl;
+        }
+        counter++;
+    }
+    jsonFile << "   }" << endl;
     jsonFile << "}" << endl;
 }
 
