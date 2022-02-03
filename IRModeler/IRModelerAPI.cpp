@@ -622,6 +622,11 @@ void printNode(Node *node) {
             cout << dec << INT_INVALID << endl;
         }
     }
+    cout << "Edge Add Optimization (fnOrderId: added node id):" << endl;
+    map<int, int>::iterator it1;
+    for (it1 = node->fnOrder2addNodeId.begin(); it1 != node->fnOrder2addNodeId.end(); ++it1) {
+        cout << dec << it1->first << ": " << it1->second << endl;
+    }
     cout << "Written values (Distance from block head -> value):" << endl;
     for (int i = 0; i < node->numberOfLocs; i++) {
         cout << "+" << dec << node->offsets[i] << " -> ";
@@ -632,11 +637,18 @@ void printNode(Node *node) {
             cout << hex << ADDRINT_INVALID << endl;
         }
     }
-    cout << "Function access information (accessOrder: fnId, accessType)" << endl;
-    map<int, FnInfo>::iterator it;
-    for (it = node->fnInfo.begin(); it != node->fnInfo.end(); ++it) {
-        cout << dec << it->first << ": " << it->second.fnId << ", " << it->second.accessType << endl;
+    cout << "Direct values optimization information (fnOrderId: (offset: value from -> value to)):" << endl;
+    map<int, DirectValOpt>::iterator it;
+    for (it = node->fnOrder2dirValOpt.begin(); it != node->fnOrder2dirValOpt.end(); ++it) {
+        cout << dec << it->first << ": (" << (it->second).offset << ": ";
+        cout << hex << (it->second).valFrom << " -> " << (it->second).valTo << ")" << endl; 
     }
+    cout << "Function access information (accessOrder: fnId, accessType)" << endl;
+    map<int, FnInfo>::iterator it2;
+    for (it2 = node->fnInfo.begin(); it2 != node->fnInfo.end(); ++it2) {
+        cout << dec << it2->first << ": " << (it2->second).fnId << ", " << (it2->second).accessType << endl;
+    }
+    cout << "--" << endl;
 }
 
 void printMap(map<ADDRINT,ADDRINT> mymap) {
@@ -935,10 +947,8 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 // We only count the edge removal only if the edge has a valid node, so we handle
                 // this case by checking that the returned value from the earlier line is NOT NULL.
                 if (target != NULL) {
-                    // Update 'this' node's 'remove' optimization information.
-                    node->removedNodeIds[node->numberOfRemoves] = target->id;
-                    node->removedEdgeIdx[node->numberOfRemoves] = edge_idx;
-                    node->numberOfRemoves++;
+                    // Update node's 'remove' optimization information.
+                    node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
 
                     // Set the removed edge to NULL.
                     node->edgeNodes[edge_idx] = NULL;
@@ -950,17 +960,18 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
             // If value is one of the existing nodes, handle edge 'replace'.
             else if (value_id != ADDRINT_INVALID) {
                 Node *to = IRGraph->nodes[value_id];
-                // Update 'this' node's 'replace' optimization information.
+                ReplacedInfo replacedInfo;
+                // Update node's 'replace' optimization information.
                 if (node->edgeNodes[edge_idx] != NULL) {
                     Node *from = node->edgeNodes[edge_idx];
-                    node->replacedNodeIds[node->numberOfReplaces][0] = from->id;
-                    node->replacedNodeIds[node->numberOfReplaces][1] = to->id;
+                    replacedInfo.nodeIdFrom = from->id;
+                    replacedInfo.nodeIdTo = to->id;
                 }
                 else {
-                    node->replacedNodeIds[node->numberOfReplaces][0] = INT_INVALID;
-                    node->replacedNodeIds[node->numberOfReplaces][1] = to->id;
+                    replacedInfo.nodeIdFrom = INT_INVALID;
+                    replacedInfo.nodeIdTo = to->id;
                 }
-                node->numberOfReplaces++;
+                node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
 
                 // Replace existing edge node with the node with 'value_id'.
                 node->edgeNodes[edge_idx] = to;
@@ -972,10 +983,9 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         // If the location is not occupied edge, but the value is a node, handle edge 'addition'.
         else if (edge_idx == INT_INVALID && value_id != ADDRINT_INVALID) {
             Node *adding = IRGraph->nodes[value_id];
-            // Update 'this' node's 'add' optimization information.
-            node->addedNodeIds[node->numberOfAdds] = adding->id;
-            node->numberOfAdds++;
-
+            // Update node's 'add' optimization information.
+            node->fnOrder2addNodeId[IRGraph->fnOrderId] = adding->id;
+            
             // Add an edge from 'this' node to the node with 'value_id'. 
             node->edgeNodes[node->numberOfEdges] = adding;
             node->edgeAddrs[node->numberOfEdges] = location;
@@ -1003,12 +1013,21 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 if (is_direct && valueSize < 8) {
                     // Compute the offset first.
                     ADDRINT offset = location - node->blockHead;
+                    // Create a new DirectValOpt object.
+                    DirectValOpt directValOpt;
+                    directValOpt.offset = offset;
+
                     // Check if the offset already occupied with some value.
                     bool is_written = false;
                     for (int i = 0; i < node->numberOfLocs; i++) {
                         // If the offset is already a written location, then update the value
                         // and mark the is_written to true.
                         if (node->offsets[i] == offset) {
+                            // Update the directValOpt's valFrom, valTo, and is_update.
+                            directValOpt.valFrom = node->valuesInLocs[i];
+                            directValOpt.valTo = value;
+                            directValOpt.is_update = true;
+                            // Update the value.
                             node->valuesInLocs[i] = value;
                             is_written = true;
                             break;
@@ -1016,10 +1035,14 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                     }
                     // If is_written is false, then is a new value write. Thus, add the offset and value.
                     if (!is_written) {
+                        // Update the directValOpt's valTo.
+                        directValOpt.valTo = value;
+                        // Update offsets and valuesInLocs.
                         node->offsets[node->numberOfLocs] = offset;
                         node->valuesInLocs[node->numberOfLocs] = value;
                         node->numberOfLocs++;
                     }
+                    node->fnOrder2dirValOpt[IRGraph->fnOrderId] = directValOpt;
                     // Update function log information.
                     updateLogInfo(node, fnId, VALUE_CHANGE);
                 }
@@ -1507,35 +1530,50 @@ void write2Json() {
         }
         jsonFile << "       }," << endl;
         // Write added optimization information.
-        jsonFile << "       \"added\": [";
-        for (int i = 0; i < node->numberOfAdds; i++) {
-            jsonFile << dec << node->addedNodeIds[i];
-            if (i < node->numberOfAdds-1) {
-                jsonFile << ",";
-            }
-        }
-        jsonFile << "]," << endl;
-        // Write removed optimization information.
-        jsonFile << "       \"removed\": [";
-        for (int i = 0; i < node->numberOfRemoves; i++) {
-            jsonFile << dec << node->removedNodeIds[i];
-            if (i < node->numberOfRemoves-1) {
-                jsonFile << ",";
-            }
-        }
-        jsonFile << "]," << endl;
-        // Write replaced optimization information..
-        jsonFile << "       \"replaced\": {" << endl;
-        for (int i = 0; i < node->numberOfReplaces; i++) {
-            jsonFile << "           \"" << dec << node->replacedNodeIds[i][0] << "\": ";
-            jsonFile << dec << "\"" << node->replacedNodeIds[i][1] << "\"";
-
-            if (i < node->numberOfReplaces-1) {
+        int counter = 0;
+        jsonFile << "       \"added\": {" << endl;
+        map<int,int>::iterator itAdd;
+        for (itAdd = node->fnOrder2addNodeId.begin(); itAdd != node->fnOrder2addNodeId.end(); ++itAdd) {
+            jsonFile << "           \"" << dec << itAdd->first << "\":" << itAdd->second;
+            if (counter < int((node->fnOrder2addNodeId).size())-1) {
                 jsonFile << "," << endl;
             }
             else {
                 jsonFile << endl;
             }
+            counter++;
+        }
+        jsonFile << "       }," << endl;
+        // Write removed optimization information.
+        counter = 0;
+        jsonFile << "       \"removed\": {" << endl;
+        map<int,int>::iterator itRem;
+        for (itRem = node->fnOrder2remNodeId.begin(); itRem != node->fnOrder2remNodeId.end(); ++itRem) {
+            jsonFile << "           \"" << dec << itRem->first << "\":" << itRem->second;
+            if (counter < int((node->fnOrder2remNodeId).size())-1) {
+                jsonFile << "," << endl;
+            }
+            else {
+                jsonFile << endl;
+            }
+            counter++;
+        }
+        jsonFile << "       }," << endl;
+        // Write replaced optimization information..
+        counter = 0;
+        jsonFile << "       \"replaced\": {" << endl;
+        map<int,ReplacedInfo>::iterator itRep;
+        for (itRep = node->fnOrder2repInfo.begin(); itRep != node->fnOrder2repInfo.end(); ++itRep) {
+            jsonFile << "           \"" << dec << itRep->first << "\": [";
+            jsonFile << (itRep->second).nodeIdFrom << ",";
+            jsonFile << (itRep->second).nodeIdTo << "]";
+            if (counter < int((node->fnOrder2repInfo).size())-1) {
+                jsonFile << "," << endl;
+            }
+            else {
+                jsonFile << endl;
+            }
+            counter++;
         }
         jsonFile << "       }" << endl;
 
@@ -1555,6 +1593,6 @@ void write2Json() {
  * Output:
  **/
 void endFile() {
-    //write2Json();
-    printNodes();
+    write2Json();
+    //printNodes();
 }
