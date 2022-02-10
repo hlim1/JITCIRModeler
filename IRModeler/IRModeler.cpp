@@ -221,8 +221,8 @@ void insInstrumentation(INS ins, void *v) {
         if (is_node_creation && INS_IsRet(ins)) {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) constructModeledIRNode, IARG_UINT32,
                     fnId, IARG_UINT32, system_id, IARG_END);
-            // Now the instruction is returning from the main node creator function, so set 'is_node_creation_range'
-            // back to false.
+            // Now the instruction is returning from the main node creator function,
+            // so set 'is_node_creation_range' back to false.
             is_node_creation_range = false;
         }
 
@@ -271,7 +271,8 @@ void insInstrumentation(INS ins, void *v) {
                 INS_InsertCall(
                         ins, IPOINT_AFTER, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
-                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation_range, IARG_END);
+                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation_range, 
+                        IARG_BOOL, is_node_creation, IARG_END);
                 printingIns = true;
             }
             if((INS_IsBranch(ins) || INS_IsCall(ins))
@@ -279,7 +280,8 @@ void insInstrumentation(INS ins, void *v) {
                 INS_InsertCall(
                         ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
-                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation_range, IARG_END);
+                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation_range,
+                        IARG_BOOL, is_node_creation, IARG_END);
                 printingIns = true;
             }
             if(!printingIns) {

@@ -152,6 +152,8 @@ bool populate_regs = false;
 ADDRINT lastMemReadLoc = ADDRINT_INVALID;
 int targetSrcRegsKey = 0;
 
+bool is_former_range = false;
+
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
     // Create a new node object and populate it with data.
@@ -190,6 +192,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     currentRaxValSize = 0;
     targetMWs.clear();
     targetSrcRegs.clear();
+    is_former_range = false;
 }
 
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
@@ -774,7 +777,14 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
  * Description: This function analyzes all the recorded information for the instruction.
  * Output: None
  **/
-bool analyzeRecords(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode, bool is_range) {
+bool analyzeRecords(
+        THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode, bool is_range,
+        bool is_create) 
+{
+
+    if (!is_former_range && is_create) {
+        is_former_range = true;
+    }
 
     ThreadData &data = tls[tid];
 
@@ -796,7 +806,7 @@ bool analyzeRecords(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode
 
     // Keep tracks of source register information of the node allocator function instructions
     // separately.
-    if (fnInFormers(fn) || fnInAllocs(fn)) {
+    if (is_former_range || fnInAllocs(fn)) {
         for (int i = 0; i < regSize; i++) {
             targetSrcRegs[targetSrcRegsKey] = srcRegsHolder[i];
             targetSrcRegsKey++;
