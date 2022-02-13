@@ -1,0 +1,30 @@
+- ```test_01.js```: addition.
+- ```test_02.js```: subtract.
+- ```test_03.js```: multiply.
+- ```test_04.js```: divide testing with both int and float.
+- ```test_05.js```: mod.
+- ```test_06.js```: bitwise ```&``` (AND).
+- ```test_07.js```: bitwise ```|``` (OR).
+- ```test_08.js```: bitwise ```^``` (XOR).
+- ```test_09.js```: bitwise ```<<``` (Zero left Shift).
+- ```test_10.js```: bitwise ```>>``` (Signed right shift).
+- ```test_11.js```: bitwise ```>>>``` (Zero right Shift).
+- ```test_12.js```: bitwise ```~``` (NOT).
+- ```test_13.js```: Unary ```+```.
+- ```test_14.js```: Unary ```-```.
+- ```test_15.js```: Comparison ```==``` (equal) with update operator ```++``` and ```--```
+- ```test_16.js```: Comparison ```!=``` (not equal) with update operator ```++``` and ```--```
+- ```test_17.js```: Comparison ```<``` (less than) with update operator ```++``` and ```--```
+- ```test_18.js```: Comparison ```>``` (greater than) with update operator ```++``` and ```--```
+- ```test_19.js```: Comparison ```<=``` (less than equal to) with update operator ```++``` and ```--```
+- ```test_20.js```: Comparison ```>=``` (greater than equal to) with update operator ```++``` and ```--```
+- ```test_21.js```: Logical ```&&``` (and).
+- ```test_22.js```: Logical ```||``` (or).
+- ```test_23.js```: All assignments (```=```, ```+=```, ```-=```, ```*=```, ```^=```, ```/=```, ```%=```).
+- ```test_24.js```: Math abs (```Math.abs()```).
+- ```test_25.js```: Math acos (```Math.acos()```).
+- ```test_26.js```: Math hyperbolic arccosine (```Math.acosh()```).
+- ```test_27.js```: Math asin (```Math.asin()```).
+- ```test_28.js```: Math hyperbolic arcsine (```Math.asinh()```).
+- ```test_29.js```: Math atan (```Math.atan()```).
+- ```test_30.js```: Math hatan (```Math.hatan()```).
