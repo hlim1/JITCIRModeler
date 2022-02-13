@@ -347,7 +347,7 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                 node->numberOfEdges++;
             }
             else if (edgeNodeId == INT_INVALID && write.location != node->intAddress) {
-                bool is_direct = is_direct_assignment(write.value);
+                bool is_direct = isDirectAssignment(write.value);
                 if (is_direct) {
                     // Compute the distance between the block head and the written location,
                     // then write to node's offsets to track which locations are wrriten.
@@ -364,17 +364,17 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
     }
 }
 
-bool is_direct_assignment(ADDRINT value) {
+bool isDirectAssignment(ADDRINT value) {
 
-    bool is_direct_assignment = true;
+    bool isDirectAssignment = true;
 
     map<ADDRINT,MWInst>::iterator it;
     it = writes.find(value);
     if (it != writes.end()) {
-        is_direct_assignment = false;
+        isDirectAssignment = false;
     }
 
-    return is_direct_assignment;
+    return isDirectAssignment;
 }
 
 bool elemInMap(ADDRINT elem, map<ADDRINT,ADDRINT> targetMap) {
@@ -562,6 +562,7 @@ bool checkCopiedValue(UINT8 *value, UINT32 size) {
  * on the input value, e.g., fix 0040032c3bef7f00 to 40032c3bef7f0000.
 */
 void fixCopyValue(UINT8 *buggy, UINT8 *fixed, UINT32 size) {
+
     assert (sizeof(buggy) == size);
 
     // Copy only the 6 bytes between the first and last 00s.
@@ -576,7 +577,7 @@ void fixCopyValue(UINT8 *buggy, UINT8 *fixed, UINT32 size) {
     fixed[fix_idx+2] = 0x00;
 }
 
-int get_edge_idx(Node *node, ADDRINT address) {
+int getEdgeIdx(Node *node, ADDRINT address) {
 
     int edge_idx = INT_INVALID;
 
@@ -777,17 +778,17 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
  * Description: This function analyzes all the recorded information for the instruction.
  * Output: None
  **/
-bool analyzeRecords(
-        THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode,
-        bool is_create) 
-{
+bool analyzeRecords(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode, bool is_create) {
 
+    ThreadData &data = tls[tid];
+
+    // Check if current instruction is within the node creation range.
+    // If true, set the is_former_range, which is the variable to keep track of the range, to true.
     if (!is_former_range && is_create) {
         is_former_range = true;
     }
 
-    ThreadData &data = tls[tid];
-
+    // Retrieve the function name.
     string fn = strTable.get(fnId);
 
     // If the instruction has register write, then analyze register write, e.g., W:RAX=...
@@ -945,7 +946,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         // Check if the memory write value is an address of a node.
         ADDRINT value_id = compareValuetoIRNodes(value);
         // Check if the location is already occupied edge.
-        int edge_idx = get_edge_idx(node, location);
+        int edge_idx = getEdgeIdx(node, location);
         // If the location is an already occupied edge, handle edge removal or edge replace.
         if (edge_idx != INT_INVALID) {
             // If value is '0', which is to wipe out the memory location, handle edge 'removal'.
@@ -1016,7 +1017,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
             else if (!is_node_addr) {
-                bool is_direct = is_direct_assignment(value);
+                bool is_direct = isDirectAssignment(value);
                 // TODO: 'valueSize < 8' is to prevent considering the memory address is considered as
                 // a value with an assmption is that the address's size is 8. This is not a good approach
                 // so we need to update it with more appropriate way.

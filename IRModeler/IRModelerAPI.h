@@ -72,14 +72,14 @@ ADDRINT get_size_jsc(ADDRINT address);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
-UINT8* addrintTouint8(ADDRINT target, UINT32 size);
-bool elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
-bool fnInAllocs(std::string fn);
-bool fnInFormers(std::string fn);
-int compareValuetoIRNodes(ADDRINT value);
-int get_edge_idx(Node *node, ADDRINT address);
-bool is_direct_assignment(ADDRINT value);
-void updateLogInfo(Node *node, UINT32 fnId, Access accessType);
+UINT8*  addrintTouint8(ADDRINT target, UINT32 size);
+bool    elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
+bool    fnInAllocs(std::string fn);
+bool    fnInFormers(std::string fn);
+int     compareValuetoIRNodes(ADDRINT value);
+int     getEdgeEdx(Node *node, ADDRINT address);
+bool    isDirectAssignment(ADDRINT value);
+void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);

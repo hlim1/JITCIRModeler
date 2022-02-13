@@ -257,14 +257,14 @@ void insInstrumentation(INS ins, void *v) {
 
         // Analyze recorded instruction information, i.e., src. registers, dest. registers, and memory, etc.
         if(!INS_IsSyscall(ins)) {
-            bool printingIns = false;
+            bool isAnalyze = false;
             if(INS_HasFallThrough(ins)) {
                 INS_InsertCall(
                         ins, IPOINT_AFTER, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
                         IARG_END);
-                printingIns = true;
+                isAnalyze = true;
             }
             if((INS_IsBranch(ins) || INS_IsCall(ins))
                     && !INS_IsXend(ins) && INS_IsValidForIpointTakenBranch(ins)) {
@@ -273,10 +273,10 @@ void insInstrumentation(INS ins, void *v) {
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
                         IARG_END);
-                printingIns = true;
+                isAnalyze = true;
             }
-            if(!printingIns) {
-                fprintf(errorFile, "not printing instruction %s\n", INS_Disassemble(ins).c_str());
+            if(!isAnalyze) {
+                fprintf(errorFile, "not analyzing records %s\n", INS_Disassemble(ins).c_str());
             }
         }
     }
