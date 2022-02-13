@@ -25,15 +25,14 @@ const std::string JSC_JIT = "DFG";
 const int V8_OPCODE_SIZE = 2;
 const int JSC_OPCODE_SIZE = 4;
 
-const std::string NODE_FORMERS[3] = {
+const std::string NODE_FORMERS[2] = {
     "v8::internal::compiler::Node::New",
-    "v8::internal::Zone::NewExpand",
-    "JSC::DFG::Node::Node",
+    "JSC::DFG::Node::Node"
 };
 
 const std::string NODE_BLOCK_ALLOCATORS[2] = {
     "v8::internal::compiler::Node::New",
-    "bmalloc::BumpAllocator::allocate",
+    "bmalloc::BumpAllocator::allocate"
 };
 
 const std::string MAIN_NODE_CREATORS[2] { 
@@ -41,7 +40,7 @@ const std::string MAIN_NODE_CREATORS[2] {
     "JSC::DFG::Node::Node"
 };
 
-const int NODE_FORMERS_SIZE = 3;
+const int NODE_FORMERS_SIZE = 2;
 const int NODE_ALLOC_SIZE = 2;
 const int NODE_CREATORS_SIZE = 2;
 
