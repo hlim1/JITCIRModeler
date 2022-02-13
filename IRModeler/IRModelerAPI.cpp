@@ -778,7 +778,7 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
  * Output: None
  **/
 bool analyzeRecords(
-        THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode, bool is_range,
+        THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode,
         bool is_create) 
 {
 
@@ -800,7 +800,7 @@ bool analyzeRecords(
 
     // If the instruction has memory write, then analyze memory write, e.g., MW[..]=...
     if(data.memWriteSize != 0) {
-        analyzeMemWrites(tid, fnId, is_range);
+        analyzeMemWrites(tid, fnId, is_former_range);
         data.memWriteSize = 0; 
     }
 
