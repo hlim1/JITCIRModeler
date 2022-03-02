@@ -745,6 +745,27 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
     // Mark that the tool needs to update the register.
     populate_regs = true;
 
+    // Check if the current memory location belongs to any one of existing node.
+    ADDRINT nodeId = ADDRINT_INVALID;
+    bool is_node_block = false;
+    for (int i = 0; i < IRGraph->lastNodeId; i++) {
+        Node *node = IRGraph->nodes[i];
+        // Check if the memory read access happens to some node block.
+        if (
+                (readAddr >= node->blockHead && readAddr < node->blockTail) ||
+                (valueInt >= node->blockHead && valueInt < node->blockTail)
+        ) {
+            nodeId = node->id;
+            is_node_block = true;
+            break;
+        }
+    }
+    // If the access was happened, update the node's access log.
+    if (is_node_block) {
+        Node *accessed =  IRGraph->nodes[nodeId];
+        updateLogInfo(accessed, fnId, EVALUATE);
+    }
+
     PIN_MutexUnlock(&dataLock);
 }
 
@@ -929,7 +950,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
     bool is_node_addr = false;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
-        if (location > node->blockHead && location < node->blockTail) {
+        if (location >= node->blockHead && location < node->blockTail) {
             // If the writing location is within the range of one node, then get the node id.
             nodeId = node->id;
             // If the writing location is the address of a node, then mark 'is_node_addr' to true.
