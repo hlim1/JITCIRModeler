@@ -25,15 +25,14 @@ const std::string JSC_JIT = "DFG";
 const int V8_OPCODE_SIZE = 2;
 const int JSC_OPCODE_SIZE = 4;
 
-const std::string NODE_FORMERS[3] = {
+const std::string NODE_FORMERS[2] = {
     "v8::internal::compiler::Node::New",
-    "v8::internal::Zone::NewExpand",
-    "JSC::DFG::Node::Node",
+    "JSC::DFG::Node::Node"
 };
 
 const std::string NODE_BLOCK_ALLOCATORS[2] = {
     "v8::internal::compiler::Node::New",
-    "bmalloc::BumpAllocator::allocate",
+    "bmalloc::BumpAllocator::allocate"
 };
 
 const std::string MAIN_NODE_CREATORS[2] { 
@@ -41,7 +40,7 @@ const std::string MAIN_NODE_CREATORS[2] {
     "JSC::DFG::Node::Node"
 };
 
-const int NODE_FORMERS_SIZE = 3;
+const int NODE_FORMERS_SIZE = 2;
 const int NODE_ALLOC_SIZE = 2;
 const int NODE_CREATORS_SIZE = 2;
 
@@ -72,14 +71,14 @@ ADDRINT get_size_jsc(ADDRINT address);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
-UINT8* addrintTouint8(ADDRINT target, UINT32 size);
-bool elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
-bool fnInAllocs(std::string fn);
-bool fnInFormers(std::string fn);
-int compareValuetoIRNodes(ADDRINT value);
-int get_edge_idx(Node *node, ADDRINT address);
-bool is_direct_assignment(ADDRINT value);
-void updateLogInfo(Node *node, UINT32 fnId, Access accessType);
+UINT8*  addrintTouint8(ADDRINT target, UINT32 size);
+bool    elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
+bool    fnInAllocs(std::string fn);
+bool    fnInFormers(std::string fn);
+int     compareValuetoIRNodes(ADDRINT value);
+int     getEdgeEdx(Node *node, ADDRINT address);
+bool    isDirectAssignment(ADDRINT value);
+void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);

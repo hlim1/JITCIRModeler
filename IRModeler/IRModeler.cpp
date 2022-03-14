@@ -71,7 +71,6 @@ string targetSystem = "";
 UINT32 system_id = UINT32_INVALID;
 
 bool is_jit = false;
-bool is_node_creation_range = false;
 // JIT IR MODELING ===========================================
 
 /**
@@ -208,11 +207,6 @@ void insInstrumentation(INS ins, void *v) {
         for (int i = 0; i < NODE_CREATORS_SIZE; i++) {
             if (fnStr == MAIN_NODE_CREATORS[i]) {
                 is_node_creation = true;
-                // Set 'is_node_creation_range' to true when the first instruction for the main node creator
-                // function has been encountered. This will be set to false at return.  
-                if (!is_node_creation_range) {
-                    is_node_creation_range = true;
-                }
                 break;
             }
         }
@@ -221,9 +215,6 @@ void insInstrumentation(INS ins, void *v) {
         if (is_node_creation && INS_IsRet(ins)) {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) constructModeledIRNode, IARG_UINT32,
                     fnId, IARG_UINT32, system_id, IARG_END);
-            // Now the instruction is returning from the main node creator function, so set 'is_node_creation_range'
-            // back to false.
-            is_node_creation_range = false;
         }
 
         // Record memory reads.
@@ -266,24 +257,26 @@ void insInstrumentation(INS ins, void *v) {
 
         // Analyze recorded instruction information, i.e., src. registers, dest. registers, and memory, etc.
         if(!INS_IsSyscall(ins)) {
-            bool printingIns = false;
+            bool isAnalyze = false;
             if(INS_HasFallThrough(ins)) {
                 INS_InsertCall(
                         ins, IPOINT_AFTER, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
-                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation_range, IARG_END);
-                printingIns = true;
+                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
+                        IARG_END);
+                isAnalyze = true;
             }
             if((INS_IsBranch(ins) || INS_IsCall(ins))
                     && !INS_IsXend(ins) && INS_IsValidForIpointTakenBranch(ins)) {
                 INS_InsertCall(
                         ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
-                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation_range, IARG_END);
-                printingIns = true;
+                        IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
+                        IARG_END);
+                isAnalyze = true;
             }
-            if(!printingIns) {
-                fprintf(errorFile, "not printing instruction %s\n", INS_Disassemble(ins).c_str());
+            if(!isAnalyze) {
+                fprintf(errorFile, "not analyzing records %s\n", INS_Disassemble(ins).c_str());
             }
         }
     }
