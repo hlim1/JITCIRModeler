@@ -28,3 +28,5 @@
 - ```test_28.js```: Math hyperbolic arcsine (```Math.asinh()```).
 - ```test_29.js```: Math atan (```Math.atan()```).
 - ```test_30.js```: Math hatan (```Math.hatan()```).
+- ```test_31.js```: Math ceil (```Math.ceil()```).
+- ```test_32.js```: Math cos (```Math.cos()```).
