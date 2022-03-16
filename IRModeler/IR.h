@@ -49,6 +49,8 @@ struct Node {
     bool    alive;                         // tracks either the node is alive or dead.
     ADDRINT intAddress;                    // address in ADDRINT type.
     ADDRINT opcode;                        // node's opcode.
+    ADDRINT opcodeAddress;                 // tracks opcode address.
+    int     opcodeId;                      // tracks opcode Id. The initial opcode ID = 0.
     // Structure information.
     UINT32  size;                          // size of a node.
     Node    *edgeNodes[MAX_NODES];         // list of nodes connected to this node.
@@ -65,6 +67,7 @@ struct Node {
     std::map<int, int> fnOrder2remNodeId;           // track the function order id to the id of removed node.
     std::map<int, ReplacedInfo> fnOrder2repInfo;    // track the function order id to the replaced info object.
     std::map<int, DirectValOpt> fnOrder2dirValOpt;  // track the direct value change due to optimization.
+    std::map<int, ADDRINT> id2Opcode                // track the opcode update information during optimization.
     // Logging information.
     std::map<int, FnInfo> fnInfo;          // track of the functions accessed to this node.
 };
