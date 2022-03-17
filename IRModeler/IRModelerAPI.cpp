@@ -182,8 +182,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     opcode = get_opcode(node, system_id);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
-    // DEBUG
-    std::cout << "Node Op: " << std::hex << node->opcode << "(0x" << node->opcodeAddress << ")" << std::endl;
 
     assert (node->opcode != ADDRINT_INVALID);
 
