@@ -51,7 +51,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 
 // API functions for system-specifics.
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id);
-ADDRINT get_opcode(Node *node, UINT32 system_id);
+ADDRINT *get_opcode(Node *node, UINT32 system_id);
 ADDRINT get_size(ADDRINT address, UINT32 system_id);
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id);
 void    get_init_block_locs(Node *node, UINT32 system_id);
@@ -61,12 +61,12 @@ void    get_init_block_locs(Node *node, UINT32 system_id);
 
 // Functions for V8 goes here.
 ADDRINT get_address_v8();
-ADDRINT get_opcode_v8(Node *node);
+ADDRINT *get_opcode_v8(Node *node);
 ADDRINT get_size_v8(ADDRINT address);
 ADDRINT get_node_block_head_v8(ADDRINT address);
 // Functions for JSC goes here.
 ADDRINT get_address_jsc();
-ADDRINT get_opcode_jsc(Node *node);
+ADDRINT *get_opcode_jsc(Node *node);
 ADDRINT get_size_jsc(ADDRINT address);
 
 // Helper functions.

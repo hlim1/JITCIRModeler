@@ -42,7 +42,7 @@ struct ReplacedInfo {
 
 struct Node {
     Node() : 
-        id(-1), alive(true), numberOfEdges(0), numberOfLocs(0) {}
+        id(-1), alive(true), opcodeId(0), numberOfEdges(0), numberOfLocs(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -67,7 +67,7 @@ struct Node {
     std::map<int, int> fnOrder2remNodeId;           // track the function order id to the id of removed node.
     std::map<int, ReplacedInfo> fnOrder2repInfo;    // track the function order id to the replaced info object.
     std::map<int, DirectValOpt> fnOrder2dirValOpt;  // track the direct value change due to optimization.
-    std::map<int, ADDRINT> id2Opcode                // track the opcode update information during optimization.
+    std::map<int, ADDRINT> id2Opcode;               // track the opcode update information during optimization.
     // Logging information.
     std::map<int, FnInfo> fnInfo;          // track of the functions accessed to this node.
 };

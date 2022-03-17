@@ -139,10 +139,11 @@ struct MRInst {
     int regSize = 0;           // number of register values collected.
 };
 
-map<ADDRINT,MWInst> writes;
-map<ADDRINT,MRInst> reads;
-map<ADDRINT,MWInst> targetMWs;
-map<int,SrcReg> targetSrcRegs;
+// Structures for holding memory/register reads and writes.
+map<ADDRINT,MWInst> writes;     // Write location address to MWInst object.
+map<ADDRINT,MRInst> reads;      // Read location address to MRInst object.
+map<ADDRINT,MWInst> targetMWs;  // Write location address to MWInst object (Target Insts. Only).
+map<int,SrcReg> targetSrcRegs;  // targetSrcRegsKey to SrcReg object.
 
 SrcReg srcRegsHolder[MAX_REGS];
 int regSize = 0;
@@ -177,7 +178,13 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     assert (node->blockTail != ADDRINT_INVALID);
 
     // Get opcode of a node.
-    node->opcode = get_opcode(node, system_id);
+    ADDRINT *opcode;
+    opcode = get_opcode(node, system_id);
+    node->opcode = opcode[0];
+    node->opcodeAddress = opcode[1];
+    // DEBUG
+    std::cout << "Node Op: " << std::hex << node->opcode << "(0x" << node->opcodeAddress << ")" << std::endl;
+
     assert (node->opcode != ADDRINT_INVALID);
 
     get_init_block_locs(node, system_id);
@@ -221,9 +228,9 @@ ADDRINT get_address_jsc() {
     return uint8Toaddrint(currentRaxVal, currentRaxValSize);
 }
 
-ADDRINT get_opcode(Node *node, UINT32 system_id) {
+ADDRINT *get_opcode(Node *node, UINT32 system_id) {
 
-    ADDRINT opcode = ADDRINT_INVALID;
+    static ADDRINT *opcode;
 
     if (system_id == V8) {
         opcode = get_opcode_v8(node);    
@@ -235,7 +242,7 @@ ADDRINT get_opcode(Node *node, UINT32 system_id) {
     return opcode;
 }
 
-ADDRINT get_opcode_v8(Node *node) {
+ADDRINT *get_opcode_v8(Node *node) {
 
     ADDRINT value = ADDRINT_INVALID;
     map<ADDRINT,MWInst>::iterator it;
@@ -247,18 +254,22 @@ ADDRINT get_opcode_v8(Node *node) {
     }
     assert(value != ADDRINT_INVALID);
 
-    ADDRINT opcode = ADDRINT_INVALID;
+    static ADDRINT opcode[2];
+    opcode[0] = ADDRINT_INVALID;
+    opcode[1] = ADDRINT_INVALID;
+
     map<ADDRINT,MWInst>::iterator it2;
     for (it2 = writes.begin(); it2 != writes.end(); ++it2) {
         MWInst write = it2->second;
         if (write.valueSize == V8_OPCODE_SIZE) {
             for (int i = 0; i < write.regSize; i++) {
                 if (value == write.srcRegs[i].value) {
-                    opcode = write.value;
+                    opcode[0] = write.value;
+                    opcode[1] = write.location;
                     break;
                 }
             }
-            if (opcode != ADDRINT_INVALID) {
+            if (opcode[0] != ADDRINT_INVALID) {
                 break;
             }
         }
@@ -267,9 +278,11 @@ ADDRINT get_opcode_v8(Node *node) {
     return opcode;
 }
 
-ADDRINT get_opcode_jsc(Node *node) {
+ADDRINT *get_opcode_jsc(Node *node) {
 
-    ADDRINT opcode = ADDRINT_INVALID;
+    static ADDRINT opcode[2];
+    opcode[0] = ADDRINT_INVALID;
+    opcode[1] = ADDRINT_INVALID;
 
     map<ADDRINT,MRInst>::iterator it;
     for (it = reads.begin(); it != reads.end(); ++it) {
@@ -280,11 +293,12 @@ ADDRINT get_opcode_jsc(Node *node) {
                 if (
                         node->intAddress == read.srcRegs[i].value)
                 {
-                    opcode = read.value;
+                    opcode[0] = read.value;
+                    opcode[1] = read.location;
                     break;
                 }
             }
-            if (opcode != ADDRINT_INVALID) {
+            if (opcode[0] != ADDRINT_INVALID) {
                 break;
             }
         }
