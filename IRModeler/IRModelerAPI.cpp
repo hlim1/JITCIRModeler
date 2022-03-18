@@ -1108,12 +1108,36 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
     fnInfo.fnId = fnId;
     fnInfo.accessType = accessType;
 
-    // Update the node's function info. map.
-    node->fnInfo[IRGraph->fnOrderId] = fnInfo;
+    // Avoid adding duplicate fnInfo one after another.
+    if ((node->fnInfo).empty() || !isSameAccess(node, fnInfo)) {
+        // Update the node's function info. map.
+        node->fnInfo[IRGraph->fnOrderId] = fnInfo;
+        node->lastInfoId = IRGraph->fnOrderId;
 
-    // Update IR's function order id and map.
-    IRGraph->fnId2Name[fnId] = fnName;
-    IRGraph->fnOrderId++;
+        // Update IR's function order id and map.
+        IRGraph->fnId2Name[fnId] = fnName;
+        IRGraph->fnOrderId++;
+    }
+}
+
+bool isSameAccess(Node *node, FnInfo fnInfo) {
+
+    bool is_same = false;
+
+    FnInfo latest = node->fnInfo[node->lastInfoId];
+
+    if (
+            latest.fnId == fnInfo.fnId
+            and latest.accessType == fnInfo.accessType
+
+    ) {
+        is_same = true;
+    }
+    else {
+        is_same = false;
+    }
+
+    return is_same;
 }
 
 /**
