@@ -5,7 +5,7 @@
 #include <map>
 
 const int MAX_NODES     = 1000;     // Max number of nodes.
-const int MAX_NODE_SIZE      = 300;      // Max number of locations between block head & tail.
+const int MAX_NODE_SIZE = 500;      // Max number of locations between block head & tail.
 
 enum Access {
     INVALID=-1,
