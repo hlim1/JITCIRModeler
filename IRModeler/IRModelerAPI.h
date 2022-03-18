@@ -46,7 +46,6 @@ const int NODE_CREATORS_SIZE = 2;
 
 // Main modeled IR constructor function.
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
-void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId);
 
 
 // API functions for system-specifics.
@@ -70,11 +69,13 @@ ADDRINT *get_opcode_jsc(Node *node);
 ADDRINT get_size_jsc(ADDRINT address);
 
 // Optimization functions.
+void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);
 void edgeRemoval(Node *node, int edge_idx, UINT32 fnId);
-void edgeReplace(Node *node, ADDRINT value_id, int edge_idx, UINT32 fnId);
-void edgeAddition(Node *node, ADDRINT location, ADDRINT value_id, UINT32 fnId);
+void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId);
+void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId);
 void nodeDestroy(Node *node, UINT32 fnId);
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId);
+void opcodeUpdate(Node *node, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
@@ -87,7 +88,7 @@ int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isDirectAssignment(ADDRINT value);
 void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 bool    isSameAccess(Node *node, FnInfo fnInfo);
-ADDRINT getUpdatedOpcode(ADDRINT value, ADDRINT valueSize);
+ADDRINT getUpdatedOpcode(ADDRINT value, ADDRINT valueSize, UINT32 system_id);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);
