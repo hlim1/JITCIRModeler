@@ -182,9 +182,15 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     opcode = get_opcode(node, system_id);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
-
     assert (node->opcode != ADDRINT_INVALID);
+    assert(node->opcodeAddress != ADDRINT_INVALID);
 
+    // DEBUG
+    std::cout << "Node Address: " << std::hex << node->intAddress << "; ";
+    std::cout << "Opcode: " << std::hex << node->opcode << "(" << node->opcodeAddress << ")";
+    std::cout << std::endl;
+
+    // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
 
     // Add node to IRGraph.
@@ -603,6 +609,17 @@ int getEdgeIdx(Node *node, ADDRINT address) {
     return edge_idx;
 }
 
+ADDRINT getUpdatedOpcode(ADDRINT value, ADDRINT valueSize) {
+
+    ADDRINT opcode = ADDRINT_INVALID;
+
+    if (valueSize == V8_OPCODE_SIZE || valueSize == JSC_OPCODE_SIZE) {
+        opcode = value;
+    }
+
+    return opcode;
+}
+
 // Functions for prints for debugging.
 
 void printUINT8(UINT8* arr, UINT32 size) {
@@ -950,6 +967,7 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range) {
         targetMWs[data.memWriteAddr] = write;
     }
 
+    // If there are IR nodes, analyzes and extracts, if exists, optimization information.
     if (IRGraph->lastNodeId > 0) {
         trackOptimization(write.location, write.value, data.memWriteSize, fnId);
     }
@@ -960,15 +978,23 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
     // Check if the current memory location belongs to any one of existing node.
     ADDRINT nodeId = ADDRINT_INVALID;
     bool is_node_addr = false;
+    //bool is_opcode_update = false;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
-        if (location >= node->blockHead && location < node->blockTail) {
+        if (
+                (location >= node->blockHead && location < node->blockTail) ||
+                location == node->opcodeAddress
+        ) {
             // If the writing location is within the range of one node, then get the node id.
             nodeId = node->id;
             // If the writing location is the address of a node, then mark 'is_node_addr' to true.
             if (location == node->intAddress) {
                 is_node_addr = true;
             }
+            // If the currently analyzing write is an opcode update, then mark is_opcode_update to true.
+            //if (location == node->opcodeAddress) {
+            //    is_opcode_update = true;
+            //}
             break;
         }
     }
@@ -976,6 +1002,9 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
     // If the location belongs to one of the nodes,
     if (nodeId != ADDRINT_INVALID) {
         Node *node = IRGraph->nodes[nodeId];
+        // Check if the memory write value is an opcode.
+        //ADDRINT opcode = getUpdatedOpcode(value, valueSize);
+
         // Check if the memory write value is an address of a node.
         ADDRINT value_id = compareValuetoIRNodes(value);
         // Check if the location is already occupied edge.
@@ -984,68 +1013,23 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         if (edge_idx != INT_INVALID) {
             // If value is '0', which is to wipe out the memory location, handle edge 'removal'.
             if (value == WIPEMEM) {
-                Node *target = node->edgeNodes[edge_idx];
-                // In some cases, I see an instruction that cleans memory location where it's alreay
-                // wiped out with '0' and never written with other value. Such instruction will clean
-                // the node's edge (already to get NULL). Thus, the earlier line will return NULL.
-                // We only count the edge removal only if the edge has a valid node, so we handle
-                // this case by checking that the returned value from the earlier line is NOT NULL.
-                if (target != NULL) {
-                    // Update node's 'remove' optimization information.
-                    node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
-
-                    // Set the removed edge to NULL.
-                    node->edgeNodes[edge_idx] = NULL;
-
-                    // Update function log information.
-                    updateLogInfo(node, fnId, REMOVAL);
-                }
+                edgeRemoval(node, edge_idx, fnId);
             }
             // If value is one of the existing nodes, handle edge 'replace'.
             else if (value_id != ADDRINT_INVALID) {
-                Node *to = IRGraph->nodes[value_id];
-                ReplacedInfo replacedInfo;
-                // Update node's 'replace' optimization information.
-                if (node->edgeNodes[edge_idx] != NULL) {
-                    Node *from = node->edgeNodes[edge_idx];
-                    replacedInfo.nodeIdFrom = from->id;
-                    replacedInfo.nodeIdTo = to->id;
-                }
-                else {
-                    replacedInfo.nodeIdFrom = INT_INVALID;
-                    replacedInfo.nodeIdTo = to->id;
-                }
-                node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
-
-                // Replace existing edge node with the node with 'value_id'.
-                node->edgeNodes[edge_idx] = to;
-
-                // Update function log information.
-                updateLogInfo(node, fnId, REPLACE);
+                edgeReplace(node, value_id, edge_idx, fnId);
             }
         }
         // If the location is not occupied edge, but the value is a node, handle edge 'addition'.
         else if (edge_idx == INT_INVALID && value_id != ADDRINT_INVALID) {
-            Node *adding = IRGraph->nodes[value_id];
-            // Update node's 'add' optimization information.
-            node->fnOrder2addNodeId[IRGraph->fnOrderId] = adding->id;
-            
-            // Add an edge from 'this' node to the node with 'value_id'. 
-            node->edgeNodes[node->numberOfEdges] = adding;
-            node->edgeAddrs[node->numberOfEdges] = location;
-            node->numberOfEdges++;
-
-            // Update function log information.
-            updateLogInfo(node, fnId, ADDITION);
+            edgeAddition(node, location, value_id, fnId);
         }
         // If the location belongs to some node block, but it's not an edge and the value is not a node.
         else if (edge_idx == INT_INVALID && value_id == ADDRINT_INVALID) {
             // Node's are being destroyed and the location is being wiped by writing '0'.
             // We check such pattern in the instruction and mark the node dead.
             if (is_node_addr && value == WIPEMEM) {
-                node->alive = false;
-                // Update function log information.
-                updateLogInfo(node, fnId, KILL);
+                nodeDestroy(node, fnId);
             }
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
@@ -1055,40 +1039,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 // a value with an assmption is that the address's size is 8. This is not a good approach
                 // so we need to update it with more appropriate way.
                 if (is_direct && valueSize < 8) {
-                    // Compute the offset first.
-                    ADDRINT offset = location - node->blockHead;
-                    // Create a new DirectValOpt object.
-                    DirectValOpt directValOpt;
-                    directValOpt.offset = offset;
-
-                    // Check if the offset already occupied with some value.
-                    bool is_written = false;
-                    for (int i = 0; i < node->numberOfLocs; i++) {
-                        // If the offset is already a written location, then update the value
-                        // and mark the is_written to true.
-                        if (node->offsets[i] == offset) {
-                            // Update the directValOpt's valFrom, valTo, and is_update.
-                            directValOpt.valFrom = node->valuesInLocs[i];
-                            directValOpt.valTo = value;
-                            directValOpt.is_update = true;
-                            // Update the value.
-                            node->valuesInLocs[i] = value;
-                            is_written = true;
-                            break;
-                        }
-                    }
-                    // If is_written is false, then is a new value write. Thus, add the offset and value.
-                    if (!is_written) {
-                        // Update the directValOpt's valTo.
-                        directValOpt.valTo = value;
-                        // Update offsets and valuesInLocs.
-                        node->offsets[node->numberOfLocs] = offset;
-                        node->valuesInLocs[node->numberOfLocs] = value;
-                        node->numberOfLocs++;
-                    }
-                    node->fnOrder2dirValOpt[IRGraph->fnOrderId] = directValOpt;
-                    // Update function log information.
-                    updateLogInfo(node, fnId, VALUE_CHANGE);
+                    directValueWrite(node, location, value, fnId); 
                 }
                 else {
                     // TODO: Need to handle indirect (pointing to non-ir object) assignment.
@@ -1123,9 +1074,13 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 bool isSameAccess(Node *node, FnInfo fnInfo) {
 
     bool is_same = false;
-
+    
+    // Get the node's last fnInfo.
     FnInfo latest = node->fnInfo[node->lastInfoId];
 
+    // If the currently analyzing fnInfo's fnId and accessType are
+    // equal to the node's last fnInfo, set is_same to true.
+    // Otherwise, false.
     if (
             latest.fnId == fnInfo.fnId
             and latest.accessType == fnInfo.accessType
@@ -1138,6 +1093,102 @@ bool isSameAccess(Node *node, FnInfo fnInfo) {
     }
 
     return is_same;
+}
+
+void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
+
+    Node *target = node->edgeNodes[edge_idx];
+    // In some cases, I see an instruction that cleans memory location where it's alreay
+    // wiped out with '0' and never written with other value. Such instruction will clean
+    // the node's edge (already to get NULL). Thus, the earlier line will return NULL.
+    // We only count the edge removal only if the edge has a valid node, so we handle
+    // this case by checking that the returned value from the earlier line is NOT NULL.
+    if (target != NULL) {
+        // Update node's 'remove' optimization information.
+        node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
+        // Set the removed edge to NULL.
+        node->edgeNodes[edge_idx] = NULL;
+        // Update function log information.
+        updateLogInfo(node, fnId, REMOVAL);
+    }
+}
+
+void edgeReplace(Node *node, ADDRINT value_id, int edge_idx, UINT32 fnId) {
+
+    Node *to = IRGraph->nodes[value_id];
+    ReplacedInfo replacedInfo;
+    // Update node's 'replace' optimization information.
+    if (node->edgeNodes[edge_idx] != NULL) {
+        Node *from = node->edgeNodes[edge_idx];
+        replacedInfo.nodeIdFrom = from->id;
+        replacedInfo.nodeIdTo = to->id;
+    }
+    else {
+        replacedInfo.nodeIdFrom = INT_INVALID;
+        replacedInfo.nodeIdTo = to->id;
+    }
+    node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
+    // Replace existing edge node with the node with 'value_id'.
+    node->edgeNodes[edge_idx] = to;
+    // Update function log information.
+    updateLogInfo(node, fnId, REPLACE);
+}
+
+void edgeAddition(Node *node, ADDRINT location, ADDRINT value_id, UINT32 fnId) {
+
+    Node *adding = IRGraph->nodes[value_id];
+    // Update node's 'add' optimization information.
+    node->fnOrder2addNodeId[IRGraph->fnOrderId] = adding->id;
+    // Add an edge from 'this' node to the node with 'value_id'. 
+    node->edgeNodes[node->numberOfEdges] = adding;
+    node->edgeAddrs[node->numberOfEdges] = location;
+    node->numberOfEdges++;
+    // Update function log information.
+    updateLogInfo(node, fnId, ADDITION);
+}
+
+void nodeDestroy(Node *node, UINT32 fnId) {
+
+    node->alive = false;
+    // Update function log information.
+    updateLogInfo(node, fnId, KILL);
+}
+
+void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) {
+    // Compute the offset first.
+    ADDRINT offset = location - node->blockHead;
+    // Create a new DirectValOpt object.
+    DirectValOpt directValOpt;
+    directValOpt.offset = offset;
+
+    // Check if the offset already occupied with some value.
+    bool is_written = false;
+    for (int i = 0; i < node->numberOfLocs; i++) {
+        // If the offset is already a written location, then update the value
+        // and mark the is_written to true.
+        if (node->offsets[i] == offset) {
+            // Update the directValOpt's valFrom, valTo, and is_update.
+            directValOpt.valFrom = node->valuesInLocs[i];
+            directValOpt.valTo = value;
+            directValOpt.is_update = true;
+            // Update the value.
+            node->valuesInLocs[i] = value;
+            is_written = true;
+            break;
+        }
+    }
+    // If is_written is false, then is a new value write. Thus, add the offset and value.
+    if (!is_written) {
+        // Update the directValOpt's valTo.
+        directValOpt.valTo = value;
+        // Update offsets and valuesInLocs.
+        node->offsets[node->numberOfLocs] = offset;
+        node->valuesInLocs[node->numberOfLocs] = value;
+        node->numberOfLocs++;
+    }
+    node->fnOrder2dirValOpt[IRGraph->fnOrderId] = directValOpt;
+    // Update function log information.
+    updateLogInfo(node, fnId, VALUE_CHANGE);
 }
 
 /**

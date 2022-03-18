@@ -69,6 +69,13 @@ ADDRINT get_address_jsc();
 ADDRINT *get_opcode_jsc(Node *node);
 ADDRINT get_size_jsc(ADDRINT address);
 
+// Optimization functions.
+void edgeRemoval(Node *node, int edge_idx, UINT32 fnId);
+void edgeReplace(Node *node, ADDRINT value_id, int edge_idx, UINT32 fnId);
+void edgeAddition(Node *node, ADDRINT location, ADDRINT value_id, UINT32 fnId);
+void nodeDestroy(Node *node, UINT32 fnId);
+void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId);
+
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
 UINT8*  addrintTouint8(ADDRINT target, UINT32 size);
@@ -80,6 +87,7 @@ int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isDirectAssignment(ADDRINT value);
 void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 bool    isSameAccess(Node *node, FnInfo fnInfo);
+ADDRINT getUpdatedOpcode(ADDRINT value, ADDRINT valueSize);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);
