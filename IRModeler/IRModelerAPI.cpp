@@ -196,7 +196,8 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
     // DEBUG
     std::cout << "Node Address: " << std::hex << node->intAddress << "; ";
-    std::cout << "Opcode: " << std::hex << node->opcode << "(" << node->opcodeAddress << ")";
+    std::cout << "Opcode: " << std::hex << node->opcode << "(" << node->opcodeAddress << "); ";
+    std::cout << "Size: " << std::dec << node->size;
     std::cout << std::endl;
 
     // Reset temporary value holders.
@@ -371,7 +372,7 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                     // Compute the distance between the block head and the written location,
                     // then write to node's offsets to track which locations are wrriten.
                     ADDRINT offset = write.location - blockHead;
-                    assert (node->numberOfLocs < MAX_LOCS);
+                    assert (node->numberOfLocs < MAX_NODE_SIZE);
                     node->offsets[node->numberOfLocs] = offset;
                     node->valuesInLocs[node->numberOfLocs] = write.value;
                     node->numberOfLocs++;
@@ -1121,8 +1122,10 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
     // this case by checking that the returned value from the earlier line is NOT NULL.
     if (target != NULL) {
         // Update node's 'remove' optimization information.
+        assert((node->fnOrder2remNodeId).size() < (node->fnOrder2remNodeId).max_size());
         node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
         // Set the removed edge to NULL.
+        assert(edge_idx < node->numberOfEdges);
         node->edgeNodes[edge_idx] = NULL;
         // Update function log information.
         updateLogInfo(node, fnId, REMOVAL);
@@ -1148,6 +1151,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
     assert((node->fnOrder2repInfo).size() < (node->fnOrder2repInfo).max_size());
     node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
     // Replace existing edge node with the node with 'value_id'.
+    assert(edge_idx < node->numberOfEdges);
     node->edgeNodes[edge_idx] = to;
     // Update function log information.
     updateLogInfo(node, fnId, REPLACE);
@@ -1189,7 +1193,7 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
         // If the offset is already a written location, then update the value
         // and mark the is_written to true.
         if (node->offsets[i] == offset) {
-            assert (i < MAX_LOCS);
+            assert (i < MAX_NODE_SIZE);
             // Update the directValOpt's valFrom, valTo, and is_update.
             directValOpt.valFrom = node->valuesInLocs[i];
             directValOpt.valTo = value;
@@ -1205,7 +1209,7 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
         // Update the directValOpt's valTo.
         directValOpt.valTo = value;
         // Update offsets and valuesInLocs.
-        assert(node->numberOfLocs < MAX_LOCS);
+        assert(node->numberOfLocs < MAX_NODE_SIZE);
         node->offsets[node->numberOfLocs] = offset;
         node->valuesInLocs[node->numberOfLocs] = value;
         node->numberOfLocs++;

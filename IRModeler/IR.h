@@ -5,7 +5,7 @@
 #include <map>
 
 const int MAX_NODES     = 1000;     // Max number of nodes.
-const int MAX_LOCS      = 100;      // Max number of locations between block head & tail.
+const int MAX_NODE_SIZE      = 300;      // Max number of locations between block head & tail.
 
 enum Access {
     INVALID=-1,
@@ -59,8 +59,8 @@ struct Node {
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
     // Metadata information.
-    ADDRINT offsets[MAX_LOCS];             // tracks occupied memory locations between the block head & tail.
-    ADDRINT valuesInLocs[MAX_LOCS];        // tracks values written to memory locations.
+    ADDRINT offsets[MAX_NODE_SIZE];             // tracks occupied memory locations between the block head & tail.
+    ADDRINT valuesInLocs[MAX_NODE_SIZE];        // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
     std::map<int, int> fnOrder2addNodeId;           // track the function order id to the id of added node.
