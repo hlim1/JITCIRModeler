@@ -5,7 +5,7 @@
 #include <map>
 
 const int MAX_NODES     = 1000;     // Max number of nodes.
-const int MAX_LOCS      = 100;      // Max number of locations between block head & tail.
+const int MAX_NODE_SIZE = 500;      // Max number of locations between block head & tail.
 
 enum Access {
     INVALID=-1,
@@ -14,7 +14,8 @@ enum Access {
     REPLACE=2,
     KILL=3,
     VALUE_CHANGE=4,
-    EVALUATE=5
+    EVALUATE=5,
+    OP_UPDATE=6
 };
 
 struct FnInfo {
@@ -42,13 +43,15 @@ struct ReplacedInfo {
 
 struct Node {
     Node() : 
-        id(-1), alive(true), numberOfEdges(0), numberOfLocs(0) {}
+        id(-1), alive(true), opcodeId(0), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
     bool    alive;                         // tracks either the node is alive or dead.
     ADDRINT intAddress;                    // address in ADDRINT type.
     ADDRINT opcode;                        // node's opcode.
+    ADDRINT opcodeAddress;                 // tracks opcode address.
+    int     opcodeId;                      // tracks opcode Id. The initial opcode ID = 0.
     // Structure information.
     UINT32  size;                          // size of a node.
     Node    *edgeNodes[MAX_NODES];         // list of nodes connected to this node.
@@ -57,16 +60,18 @@ struct Node {
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
     // Metadata information.
-    ADDRINT offsets[MAX_LOCS];             // tracks occupied memory locations between the block head & tail.
-    ADDRINT valuesInLocs[MAX_LOCS];        // tracks values written to memory locations.
+    ADDRINT offsets[MAX_NODE_SIZE];             // tracks occupied memory locations between the block head & tail.
+    ADDRINT valuesInLocs[MAX_NODE_SIZE];        // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
     std::map<int, int> fnOrder2addNodeId;           // track the function order id to the id of added node.
     std::map<int, int> fnOrder2remNodeId;           // track the function order id to the id of removed node.
     std::map<int, ReplacedInfo> fnOrder2repInfo;    // track the function order id to the replaced info object.
     std::map<int, DirectValOpt> fnOrder2dirValOpt;  // track the direct value change due to optimization.
+    std::map<int, ADDRINT> id2Opcode;               // track the opcode update information during optimization.
     // Logging information.
     std::map<int, FnInfo> fnInfo;          // track of the functions accessed to this node.
+    int lastInfoId;                        // track the ID assigned to the fnInfo added latest.
 };
 
 struct IR {
