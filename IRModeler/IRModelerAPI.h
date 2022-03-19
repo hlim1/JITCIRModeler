@@ -78,7 +78,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId);
 void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId);
 void nodeDestroy(Node *node, UINT32 fnId);
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId);
-void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
+void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id, UINT32 fnId);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);

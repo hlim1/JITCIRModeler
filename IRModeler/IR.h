@@ -14,7 +14,8 @@ enum Access {
     REPLACE=2,
     KILL=3,
     VALUE_CHANGE=4,
-    EVALUATE=5
+    EVALUATE=5,
+    OP_UPDATE=6
 };
 
 struct FnInfo {

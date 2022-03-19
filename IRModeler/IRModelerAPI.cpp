@@ -1077,7 +1077,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
             // If the write is happening at node address locaiton, then check whether it's an opcode
             // update or not and update the opcode, if yes.
             else if (is_node_addr && value != WIPEMEM) {
-                opcodeUpdate(node, location, value, valueSize, system_id);
+                opcodeUpdate(node, location, value, valueSize, system_id, fnId);
             }
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
@@ -1215,6 +1215,7 @@ void nodeDestroy(Node *node, UINT32 fnId) {
 }
 
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) {
+
     // Compute the offset first.
     ADDRINT offset = location - node->blockHead;
     // Create a new DirectValOpt object.
@@ -1259,7 +1260,10 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
     }
 }
 
-void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id) {
+void opcodeUpdate(
+        Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, 
+        UINT32 system_id, UINT32 fnId) 
+{
 
     // Check if the memory write value is an opcode.
     ADDRINT *opcode;
@@ -1274,6 +1278,8 @@ void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize
         node->opcodeId++;
         assert((node->id2Opcode).size() < (node->id2Opcode).max_size());
         node->id2Opcode[node->opcodeId] = opcode[0];
+        // Update function log information.
+        updateLogInfo(node, fnId, OP_UPDATE);
     }
 }
 
