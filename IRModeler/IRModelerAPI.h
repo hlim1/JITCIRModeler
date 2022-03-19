@@ -54,6 +54,7 @@ ADDRINT *get_opcode(Node *node, UINT32 system_id);
 ADDRINT get_size(ADDRINT address, UINT32 system_id);
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id);
 void    get_init_block_locs(Node *node, UINT32 system_id);
+ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
 
 // Above functions call functions below to handle system-specific information extraction.
 // To handle other system's opcode extraction, add function below and call from get_opcode(..).
@@ -63,10 +64,12 @@ ADDRINT get_address_v8();
 ADDRINT *get_opcode_v8(Node *node);
 ADDRINT get_size_v8(ADDRINT address);
 ADDRINT get_node_block_head_v8(ADDRINT address);
+ADDRINT *get_update_opcode_v8(Node* node, ADDRINT value);
 // Functions for JSC goes here.
 ADDRINT get_address_jsc();
 ADDRINT *get_opcode_jsc(Node *node);
 ADDRINT get_size_jsc(ADDRINT address);
+ADDRINT *get_update_opcode_jsc(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 
 // Optimization functions.
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);
@@ -75,7 +78,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId);
 void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId);
 void nodeDestroy(Node *node, UINT32 fnId);
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId);
-void opcodeUpdate(Node *node, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
+void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
@@ -88,7 +91,6 @@ int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isDirectAssignment(ADDRINT value);
 void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 bool    isSameAccess(Node *node, FnInfo fnInfo);
-ADDRINT getUpdatedOpcode(ADDRINT value, ADDRINT valueSize, UINT32 system_id);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);
