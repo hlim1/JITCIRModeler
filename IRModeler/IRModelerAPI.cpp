@@ -183,6 +183,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     opcode = get_opcode(node, system_id);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
+    node->id2Opcode[node->opcodeId] = opcode[0];
     assert (node->opcode != ADDRINT_INVALID);
     assert(node->opcodeAddress != ADDRINT_INVALID);
 
