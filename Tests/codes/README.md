@@ -30,3 +30,11 @@
 - ```test_30.js```: Math hatan (```Math.hatan()```).
 - ```test_31.js```: Math ceil (```Math.ceil()```).
 - ```test_32.js```: Math cos (```Math.cos()```).
+- ```test_33.js```: Math exp (```Math.exp()```).
+- ```test_34.js```: Math floor (```Math.floor()```).
+- ```test_35.js```: Math log (```Math.log()```).
+- ```test_36.js```: Math random (```Math.random()```).
+- ```test_37.js```: Math round (```Math.round()```).
+- ```test_38.js```: Math sin (```Math.sin()```).
+- ```test_39.js```: Math sqrt (```Math.sqrt()```).
+- ```test_40.js```: Math tan (```Math.tan()```).
