@@ -35,6 +35,9 @@ Formated JSON file - ir.json
             "directValues": {
                 "offset":"value"
             },
+            "opcode_update": {
+                "updated_opcode_id":"opcode"
+            },
             "added": {
                 "fnOrderId":added node id number
             },
@@ -74,3 +77,5 @@ Formated JSON file - ir.json
 ```"fnOrderId"```: Function execution order id.
 
 ```"is_update"```: Boolean to indicate whether the direct value optimization was for updating the existing value or adding a new value to the new location.
+
+```"updated_opcode_id"```: Initial opcode has id=0. Each opcode update gets incremented id.

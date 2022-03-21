@@ -263,6 +263,7 @@ void insInstrumentation(INS ins, void *v) {
                         ins, IPOINT_AFTER, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
+                        IARG_UINT32, system_id,
                         IARG_END);
                 isAnalyze = true;
             }
@@ -272,6 +273,7 @@ void insInstrumentation(INS ins, void *v) {
                         ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
+                        IARG_UINT32, system_id,
                         IARG_END);
                 isAnalyze = true;
             }
