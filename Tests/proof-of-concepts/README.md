@@ -7,5 +7,5 @@
 - ```1072171_01V8.js```: [V8 Bug Report #1072171 PoC-01](https://bugs.chromium.org/p/chromium/issues/detail?id=1072171)
 - ```1072171_02V8.js```: [V8 Bug Report #1072171 PoC-02](https://bugs.chromium.org/p/chromium/issues/detail?id=1072171)
 - ```880207V8.js```: [V8 Bug Report #880207](https://bugs.chromium.org/p/chromium/issues/detail?id=880207)
-- ```913296V8.js: [V8 Bug Report #913296](https://bugs.chromium.org/p/chromium/issues/detail?id=913296&q=component%3ABlink%3EJavaScript%3ECompiler%20status%3DFixed&can=1)
+- ```913296V8.js```: [V8 Bug Report #913296](https://bugs.chromium.org/p/chromium/issues/detail?id=913296&q=component%3ABlink%3EJavaScript%3ECompiler%20status%3DFixed&can=1)
 - ```9113V8.js```: [V8 Bug Report #9113](https://bugs.chromium.org/p/v8/issues/detail?id=9113&q=component%3DCompiler%20type%3DBug%20status%3DFixed&can=1)
