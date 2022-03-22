@@ -40,3 +40,13 @@
 - ```test_38.js```: Math sin (```Math.sin()```).
 - ```test_39.js```: Math sqrt (```Math.sqrt()```).
 - ```test_40.js```: Math tan (```Math.tan()```).
+- ```test_41.js```: Math atan2 (```Math.atan2()```).
+- ```test_42.js```: Math pow (```Math.pow()```).
+- ```test_43.js```: Math max (```Math.max()```).
+- ```test_44.js```: Math min (```Math.min()```).
+- ```test_45.js```: Regex exec (```regex.exec()```).
+- ```test_46.js```: Regex test (```regex.test()```).
+- ```test_47.js```: Regex match (```str.match()```).
+- ```test_48.js```: Regex matchAll (```str.matchAll()```).
+- ```test_49.js```: Regex search (```str.search()```).
+- ```test_50.js```: Regex replace (```str.replace()```).
