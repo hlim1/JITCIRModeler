@@ -50,3 +50,13 @@
 - ```test_48.js```: Regex matchAll (```str.matchAll()```).
 - ```test_49.js```: Regex search (```str.search()```).
 - ```test_50.js```: Regex replace (```str.replace()```).
+- ```test_51.js```: parseInt (```parseInt()```).
+- ```test_52.js```: parseFloat (```parseFloat()```).
+- ```test_53.js```: BigInt with integer value (```BigInt()```).
+- ```test_54.js```: BigInt with integer value in string (```BigInt()```).
+- ```test_55.js```: BigInt with huge hex (```BigInt()```).
+- ```test_56.js```: BigInt with huge octal (```BigInt()```).
+- ```test_57.js```: BigInt with huge binary (```BigInt()```).
+- ```test_58.js```: BigInt 64 array from length (```BigInt64Array()```).
+- ```test_59.js```: BigInt 64 array from array (```BigInt64Array()```).
+- ```test_60.js```: BigInt 64 array from another TypedArray (```BigInt64Array()```).
