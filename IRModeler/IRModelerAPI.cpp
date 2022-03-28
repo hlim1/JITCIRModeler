@@ -157,11 +157,6 @@ bool is_former_range = false;
 
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
-    // DEBUG
-    cout << "system_id: " << system_id << endl;
-    string fn = strTable.get(fnId);
-    cout << "fn: " << fn << endl;
-
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
@@ -169,10 +164,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
-
-    // DEBUG
-    cout << "Node Address: " << hex << node->intAddress << endl;
-    exit(1);
 
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
@@ -241,10 +232,6 @@ ADDRINT get_address_jsc() {
 }
 
 ADDRINT get_address_spm() {
-    // DEBUG
-    cout << "get_address_spm" << endl;
-    cout << "currentRaxValSize: " << dec << currentRaxValSize << endl;
-    printUINT8(currentRaxVal, currentRaxValSize);
 
     return uint8Toaddrint(currentRaxVal, currentRaxValSize);
 }
@@ -991,6 +978,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx) {
             if (checkRAXValue(RAXValue)) {
                 PIN_SafeCopy(currentRaxVal, buf, fullSize);
                 currentRaxValSize = fullSize;
+                printUINT8(currentRaxVal, fullSize);
             }
         }
     }
