@@ -157,6 +157,11 @@ bool is_former_range = false;
 
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
+    // DEBUG
+    cout << "system_id: " << system_id << endl;
+    string fn = strTable.get(fnId);
+    cout << "fn: " << fn << endl;
+
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
@@ -164,6 +169,10 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
+
+    // DEBUG
+    cout << "Node Address: " << hex << node->intAddress << endl;
+    exit(1);
 
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
@@ -212,6 +221,9 @@ ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
     else if (system_id == JSC) {
         address = get_address_jsc();
     }
+    else if (system_id == SPM) {
+        address = get_address_spm();
+    } 
 
     assert(address != ADDRINT_INVALID);
 
@@ -224,6 +236,15 @@ ADDRINT get_address_v8() {
 }
 
 ADDRINT get_address_jsc() {
+
+    return uint8Toaddrint(currentRaxVal, currentRaxValSize);
+}
+
+ADDRINT get_address_spm() {
+    // DEBUG
+    cout << "get_address_spm" << endl;
+    cout << "currentRaxValSize: " << dec << currentRaxValSize << endl;
+    printUINT8(currentRaxVal, currentRaxValSize);
 
     return uint8Toaddrint(currentRaxVal, currentRaxValSize);
 }
@@ -419,6 +440,9 @@ bool checkRAXValue(UINT8 *value) {
 }
 
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size) {
+    
+    assert (size > 0);
+
     ADDRINT to = 0;
     for (int i = size-1; i >= 0; i--) {
         to = (to << 8) | target[i];
@@ -670,6 +694,8 @@ ADDRINT *get_update_opcode_jsc(Node *node, ADDRINT location, ADDRINT value, ADDR
 // Functions for prints for debugging.
 
 void printUINT8(UINT8* arr, UINT32 size) {
+
+    assert (size > 0);
 
     for (UINT32 i = size-1; i > 0; i--) {
         printf("%02x", arr[i]);

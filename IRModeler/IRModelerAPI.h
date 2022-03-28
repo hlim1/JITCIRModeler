@@ -14,13 +14,13 @@ const int     INT_INVALID     = -1;
 
 const UINT32 V8 = 1;
 const UINT32 JSC = 2;
+const UINT32 SPM = 3;
 
 const UINT32 MEMSIZE    = 8;
 
-const std::string SYSTEM_V8 = "v8";
-const std::string V8_JIT = "compiler";
-const std::string SYSTEM_JSC = "JSC";
-const std::string JSC_JIT = "DFG";
+const std::string V8_JIT = "v8::internal::compiler";
+const std::string JSC_JIT = "JSC::DFG";
+const std::string SPM_JIT = "js::jit";
 
 const int V8_OPCODE_SIZE = 2;
 const int JSC_OPCODE_SIZE = 4;
@@ -35,14 +35,15 @@ const std::string NODE_BLOCK_ALLOCATORS[2] = {
     "bmalloc::BumpAllocator::allocate"
 };
 
-const std::string MAIN_NODE_CREATORS[2] { 
+const std::string MAIN_NODE_CREATORS[3] { 
     "v8::internal::compiler::Node::New",
-    "JSC::DFG::Node::Node"
+    "JSC::DFG::Node::Node",
+    "js::jit::MParameter::New<int const&>"
 };
 
 const int NODE_FORMERS_SIZE = 2;
 const int NODE_ALLOC_SIZE = 2;
-const int NODE_CREATORS_SIZE = 2;
+const int NODE_CREATORS_SIZE = 3;
 
 // Main modeled IR constructor function.
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
@@ -70,6 +71,8 @@ ADDRINT get_address_jsc();
 ADDRINT *get_opcode_jsc(Node *node);
 ADDRINT get_size_jsc(ADDRINT address);
 ADDRINT *get_update_opcode_jsc(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
+// Functions for SpiderMonkey(SPM) goes here.
+ADDRINT get_address_spm();
 
 // Optimization functions.
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);
