@@ -24,6 +24,7 @@ const std::string SPM_JIT = "js::jit";
 
 const int V8_OPCODE_SIZE = 2;
 const int JSC_OPCODE_SIZE = 4;
+const int SPM_OPCODE_SIZE = 2;
 
 const std::string NODE_FORMERS[2] = {
     "v8::internal::compiler::Node::New",
@@ -74,6 +75,7 @@ ADDRINT get_size_jsc(ADDRINT address);
 ADDRINT *get_update_opcode_jsc(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 // Functions for SpiderMonkey(SPM) goes here.
 ADDRINT get_address_spm();
+ADDRINT *get_opcode_spm(Node *node);
 ADDRINT get_size_spm(ADDRINT address);
 
 // Optimization functions.

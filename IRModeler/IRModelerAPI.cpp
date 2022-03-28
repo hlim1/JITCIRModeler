@@ -253,6 +253,9 @@ ADDRINT *get_opcode(Node *node, UINT32 system_id) {
     else if (system_id == JSC) {
         opcode = get_opcode_jsc(node);    
     }
+    else if (system_id == SPM) {
+        opcode = get_opcode_spm(node);    
+    }
 
     return opcode;
 }
@@ -314,6 +317,28 @@ ADDRINT *get_opcode_jsc(Node *node) {
             if (opcode[0] != ADDRINT_INVALID) {
                 break;
             }
+        }
+    }
+
+    return opcode;
+}
+
+ADDRINT *get_opcode_spm(Node *node) {
+
+    static ADDRINT opcode[2];
+    opcode[0] = ADDRINT_INVALID;
+    opcode[1] = ADDRINT_INVALID;
+
+    map<ADDRINT,MWInst>::iterator it;
+    for (it = writes.begin(); it != writes.end(); ++it) {
+        MWInst write = it->second;
+        if (
+                write.valueSize == SPM_OPCODE_SIZE &&
+                (write.location > node->blockHead && write.location < node->blockTail)
+        ) {
+            opcode[0] = write.value;
+            opcode[1] = write.location;
+            break;
         }
     }
 
