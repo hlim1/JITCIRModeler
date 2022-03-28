@@ -324,6 +324,10 @@ ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id) {
         // For JSC, block head address is equal to the node address.
         blockHead = address;
     }
+    else if (system_id == SPM) {
+        // For SpiderMonkey, block head address is equal to the node address.
+        blockHead = address;
+    }
 
     return blockHead;
 }
