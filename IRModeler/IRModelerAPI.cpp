@@ -111,12 +111,12 @@ struct Instruction {
 } instruction;
 
 // Struct for source register information.
-struct SrcReg {
+struct RegInfo {
     int instId;                // instruction id.
     UINT32 fnId;               // function id.
     UINT32 instOp;             // instruction opcode.
     LynxReg lReg;              // lynx register.
-    ADDRINT value;             // value in the source register.
+    ADDRINT value;             // value in the register.
 };
 
 // Struct for memory write information.
@@ -125,7 +125,7 @@ struct MWInst {
     ADDRINT location;          // address location.
     ADDRINT value;             // written value.
     ADDRINT valueSize;         // size of written value in bytes.
-    SrcReg  srcRegs[MAX_REGS]; // values in the read registers.
+    RegInfo  srcRegs[MAX_REGS]; // values in the read registers.
     int regSize = 0;           // number of register values collected.
 };
 
@@ -135,7 +135,7 @@ struct MRInst {
     ADDRINT location;          // address location.
     ADDRINT value;             // read value.
     ADDRINT valueSize;         // size of read value in bytes.
-    SrcReg  srcRegs[MAX_REGS]; // values in the read registers.
+    RegInfo  srcRegs[MAX_REGS]; // values in the read registers.
     int regSize = 0;           // number of register values collected.
 };
 
@@ -143,15 +143,19 @@ struct MRInst {
 map<ADDRINT,MWInst> writes;     // Write location address to MWInst object.
 map<ADDRINT,MRInst> reads;      // Read location address to MRInst object.
 map<ADDRINT,MWInst> targetMWs;  // Write location address to MWInst object (Target Insts. Only).
-map<int,SrcReg> targetSrcRegs;  // targetSrcRegsKey to SrcReg object.
+map<int,RegInfo> targetSrcRegs;  // targetSrcRegsKey to RegInfo object.
+map<int,RegInfo> targetDesRegs;  // targetDesRegsKey to RegInfo object.
 
-SrcReg srcRegsHolder[MAX_REGS];
-int regSize = 0;
+RegInfo srcRegsHolder[MAX_REGS];
+RegInfo desRegsHolder[MAX_REGS];
+int srcRegSize = 0;
+int desRegSize = 0;
 UINT8  currentRaxVal[LARGEST_REG_SIZE];
 UINT32 currentRaxValSize = 0;
 bool populate_regs = false;
 ADDRINT lastMemReadLoc = ADDRINT_INVALID;
 int targetSrcRegsKey = 0;
+int targetDesRegsKey = 0;
 
 bool is_former_range = false;
 
@@ -199,6 +203,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     currentRaxValSize = 0;
     targetMWs.clear();
     targetSrcRegs.clear();
+    targetDesRegs.clear();
+    targetSrcRegsKey = 0;
+    targetDesRegsKey = 0;
     is_former_range = false;
 }
 
@@ -509,6 +516,11 @@ ADDRINT get_size(ADDRINT address, UINT32 system_id) {
     else if (system_id == JSC) {
         size = get_size_jsc(address);
     }
+    else if (system_id == SPM) {
+        size = get_size_spm(address);
+    }
+
+    assert (size > 0);
 
     return size;
 }
@@ -516,13 +528,13 @@ ADDRINT get_size(ADDRINT address, UINT32 system_id) {
 ADDRINT get_size_v8(ADDRINT address) {
 
     ADDRINT size = ADDRINT_INVALID;
-    SrcReg target;
+    RegInfo target;
     bool got_target = false;
 
     // First, identify the register that holds block memory address.
-    map<int,SrcReg>::iterator it;
+    map<int,RegInfo>::iterator it;
     for (it = targetSrcRegs.begin(); it != targetSrcRegs.end(); ++it) {
-        SrcReg reg = it->second;
+        RegInfo reg = it->second;
         if (reg.instOp == ADD and reg.value == address) {
             target = reg;
             got_target = true;
@@ -532,7 +544,7 @@ ADDRINT get_size_v8(ADDRINT address) {
     assert (got_target);
 
     for (it = targetSrcRegs.begin(); it != targetSrcRegs.end(); ++it) {
-        SrcReg reg = it->second;
+        RegInfo reg = it->second;
         if (reg.instId == target.instId && reg.value != target.value) {
             size = reg.value;
             break;
@@ -546,13 +558,13 @@ ADDRINT get_size_v8(ADDRINT address) {
 ADDRINT get_size_jsc(ADDRINT address) {
 
     ADDRINT size = ADDRINT_INVALID;
-    SrcReg target;
+    RegInfo target;
     bool got_target = false;
 
     // First, identify the register that holds block memory address.
-    map<int,SrcReg>::iterator it;
+    map<int,RegInfo>::iterator it;
     for (it = targetSrcRegs.begin(); it != targetSrcRegs.end(); ++it) {
-        SrcReg reg = it->second;
+        RegInfo reg = it->second;
         if (reg.instOp == ADD and reg.value == address) {
             target = reg;
             got_target = true;
@@ -562,9 +574,34 @@ ADDRINT get_size_jsc(ADDRINT address) {
     assert (got_target);
 
     for (it = targetSrcRegs.begin(); it != targetSrcRegs.end(); ++it) {
-        SrcReg reg = it->second;
+        RegInfo reg = it->second;
         if (reg.instId == target.instId && reg.value != target.value) {
             size = reg.value;
+            break;
+        }
+    }
+    assert (size != ADDRINT_INVALID);
+
+    return size;
+}
+
+ADDRINT get_size_spm(ADDRINT address) {
+
+    ADDRINT size = ADDRINT_INVALID;
+
+    // First, identify the register that holds block memory address.
+    map<int,RegInfo>::iterator it;
+    for (it = targetSrcRegs.begin(); it != targetSrcRegs.end(); ++it) {
+        RegInfo srcReg = it->second;
+        if (srcReg.instOp == ADD and srcReg.value == address) {
+            map<int,RegInfo>::iterator it2;
+            for (it2 = targetDesRegs.begin(); it2 != targetDesRegs.end(); ++it2) {
+                RegInfo desReg = it2->second;
+                if (desReg.instId == srcReg.instId) {
+                    size = desReg.value - srcReg.value;
+                    break;
+                }
+            }
             break;
         }
     }
@@ -765,8 +802,8 @@ void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
         THREADID tid, const CONTEXT *ctx, const RegVector *srcRegs, UINT32 fnId,
         UINT32 instOpcode) {
 
-    // In case regSize was not reset, reset it to zero.
-    regSize = 0;
+    // In case srcRegSize was not reset, reset it to zero.
+    srcRegSize = 0;
 
     UINT8 buf[LARGEST_REG_SIZE];
     for(UINT8 i = 0; i < srcRegs->getSize(); i++) {
@@ -782,7 +819,7 @@ void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
         ADDRINT regValueInt = uint8Toaddrint(RegValue, fullSize);
 
         // Create a new srcRegs object.
-        SrcReg srcReg;
+        RegInfo srcReg;
         srcReg.instId = instruction.id;
         srcReg.fnId = fnId;
         srcReg.instOp = instOpcode;
@@ -790,8 +827,8 @@ void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
         srcReg.value = regValueInt;
 
         assert (i < MAX_REGS);
-        srcRegsHolder[regSize] = srcReg;
-        regSize++;
+        srcRegsHolder[srcRegSize] = srcReg;
+        srcRegSize++;
     }
 }
 
@@ -911,7 +948,7 @@ bool analyzeRecords(
     // Note: We only care about the last RAX register value of node allocator
     // function instructions.
     if(fnInAllocs(fn) && data.destRegs != NULL) {
-        analyzeRegWrites(tid, ctx);
+        analyzeRegWrites(tid, ctx, fnId, opcode);
         data.destRegs = NULL;
     }
 
@@ -924,25 +961,32 @@ bool analyzeRecords(
     // Keep tracks of source register information of the node allocator function instructions
     // separately.
     if (is_former_range || fnInAllocs(fn)) {
-        for (int i = 0; i < regSize; i++) {
+        for (int i = 0; i < srcRegSize; i++) {
             assert(targetSrcRegs.size() < targetSrcRegs.max_size());
             targetSrcRegs[targetSrcRegsKey] = srcRegsHolder[i];
             targetSrcRegsKey++;
         } 
+        for (int j = 0; j < desRegSize; j++) {
+            assert(targetDesRegs.size() < targetDesRegs.max_size());
+            targetDesRegs[targetDesRegsKey] = desRegsHolder[j];
+            targetDesRegsKey++;
+        }
     }
 
     // If there was a memory read in the current node allocator function instruction, then populate
     // the source register information to the MR tracker object.
     if (populate_regs) {
-        for (int i = 0; i < regSize; i++) {
+        for (int i = 0; i < srcRegSize; i++) {
             assert(i < MAX_REGS);
             reads[lastMemReadLoc].srcRegs[i] = srcRegsHolder[i];
         }
-        reads[lastMemReadLoc].regSize = regSize;
+        reads[lastMemReadLoc].regSize = srcRegSize;
         populate_regs = false;
     }
-    memset(srcRegsHolder, 0, regSize);
-    regSize = 0;
+    memset(srcRegsHolder, 0, srcRegSize);
+    srcRegSize = 0;
+    memset(desRegsHolder, 0, desRegSize);
+    desRegSize = 0;
 
     PIN_MutexLock(&traceLock);
     data.eventId = eventId;
@@ -959,9 +1003,11 @@ bool analyzeRecords(
     return labeled;
 }
 
-void analyzeRegWrites(THREADID tid, const CONTEXT *ctx) {
+void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode) {
     
     ThreadData &data = tls[tid];
+
+    desRegSize = 0;
 
     REG reg;
     UINT8 buf[LARGEST_REG_SIZE];
@@ -982,9 +1028,25 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx) {
             if (checkRAXValue(RAXValue)) {
                 PIN_SafeCopy(currentRaxVal, buf, fullSize);
                 currentRaxValSize = fullSize;
-                printUINT8(currentRaxVal, fullSize);
             }
         }
+
+        UINT8 RegValue[fullSize];
+        PIN_SafeCopy(RegValue, buf, fullSize);
+
+        ADDRINT regValueInt = uint8Toaddrint(RegValue, fullSize);
+
+        // Create a new desRegs object.
+        RegInfo desReg;
+        desReg.instId = instruction.id;
+        desReg.fnId = fnId;
+        desReg.instOp = opcode;
+        desReg.lReg = fullLReg;
+        desReg.value = regValueInt;
+
+        assert (i < MAX_REGS);
+        desRegsHolder[desRegSize] = desReg;
+        desRegSize++;
     }
 }
 
@@ -1023,11 +1085,11 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
     write.location = data.memWriteAddr;
     write.value = valueInt;
     write.valueSize = data.memWriteSize;
-    for (int i = 0; i < regSize; i++) {
+    for (int i = 0; i < srcRegSize; i++) {
         assert (i < MAX_REGS);
         write.srcRegs[i] = srcRegsHolder[i];
     }
-    write.regSize = regSize;
+    write.regSize = srcRegSize;
 
     // Add the 'write' object to the 'writes' map.
     assert(writes.size() < writes.max_size());

@@ -74,6 +74,7 @@ ADDRINT get_size_jsc(ADDRINT address);
 ADDRINT *get_update_opcode_jsc(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 // Functions for SpiderMonkey(SPM) goes here.
 ADDRINT get_address_spm();
+ADDRINT get_size_spm(ADDRINT address);
 
 // Optimization functions.
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);
