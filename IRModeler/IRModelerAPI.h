@@ -34,18 +34,25 @@ const std::string NODE_FORMERS[2] = {
 const std::string NODE_BLOCK_ALLOCATORS[3] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
+//    "js::jit::MBasicBlock::New",
     "js::jit::MParameter::New<int const&>"
 };
 
 const std::string MAIN_NODE_CREATORS[3] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
+//    "js::jit::MBasicBlock::New",
     "js::jit::MParameter::New<int const&>"
+};
+
+const std::string CFG_BLOCK_ALLOCATORS[1] = {
+    "js::jit::MBasicBlock::New"
 };
 
 const int NODE_FORMERS_SIZE = 2;
 const int NODE_ALLOC_SIZE = 3;
 const int NODE_CREATORS_SIZE = 3;
+const int CFG_BLOCK_ALLOC_SIZE = 1;
 
 // Main modeled IR constructor function.
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
@@ -53,7 +60,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
 
 // API functions for system-specifics.
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id);
-ADDRINT *get_opcode(Node *node, UINT32 system_id);
+ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId);
 ADDRINT get_size(ADDRINT address, UINT32 system_id);
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id);
 void    get_init_block_locs(Node *node, UINT32 system_id);
@@ -75,7 +82,7 @@ ADDRINT get_size_jsc(ADDRINT address);
 ADDRINT *get_update_opcode_jsc(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 // Functions for SpiderMonkey(SPM) goes here.
 ADDRINT get_address_spm();
-ADDRINT *get_opcode_spm(Node *node);
+ADDRINT *get_opcode_spm(Node *node, UINT32 fnId);
 ADDRINT get_size_spm(ADDRINT address);
 ADDRINT *get_update_opcode_spm(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 
@@ -94,6 +101,7 @@ UINT8*  addrintTouint8(ADDRINT target, UINT32 size);
 bool    elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
 bool    fnInAllocs(std::string fn);
 bool    fnInFormers(std::string fn);
+bool    fnInCFGAllocs(std::string fn);
 int     compareValuetoIRNodes(ADDRINT value);
 int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isDirectAssignment(ADDRINT value);
