@@ -161,6 +161,9 @@ bool is_former_range = false;
 
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
+    // DEBUG
+    cout << "constructModeledIRNode" << endl;
+
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
@@ -168,6 +171,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
+
+    // DEBUG
+    cout << "Node Address: " << hex << node->intAddress << endl;
 
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
@@ -178,17 +184,30 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
 
+    // DEBUG
+    cout << "Node Size: " << dec << node->size << endl;
+
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
     assert (node->blockTail != ADDRINT_INVALID);
 
     // Get opcode of a node.
     ADDRINT *opcode;
-    opcode = get_opcode(node, system_id);
+    opcode = get_opcode(node, system_id, fnId);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
-    assert (node->opcode != ADDRINT_INVALID);
-    assert(node->opcodeAddress != ADDRINT_INVALID);
+    // Since a CFG block node has no opcode, we want to check the validity of opcode value
+    // only for all non-CFG block nodes.
+    if (!node->is_cfgBlock) {
+        assert (node->opcode != ADDRINT_INVALID);
+        assert(node->opcodeAddress != ADDRINT_INVALID);
+        // DEBUG
+        cout << "Node Opcode: " << hex << node->opcode << "(" << node->opcodeAddress << ")" << endl;
+    }
+    else {
+        // DEBUG
+        cout << "Node is CFG Block" << endl;
+    }
 
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
@@ -207,6 +226,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     targetSrcRegsKey = 0;
     targetDesRegsKey = 0;
     is_former_range = false;
+
+    // DEBUG
+    // exit(1);
 }
 
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
@@ -243,7 +265,7 @@ ADDRINT get_address_spm() {
     return uint8Toaddrint(currentRaxVal, currentRaxValSize);
 }
 
-ADDRINT *get_opcode(Node *node, UINT32 system_id) {
+ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {
 
     static ADDRINT *opcode;
 
@@ -254,7 +276,7 @@ ADDRINT *get_opcode(Node *node, UINT32 system_id) {
         opcode = get_opcode_jsc(node);    
     }
     else if (system_id == SPM) {
-        opcode = get_opcode_spm(node);    
+        opcode = get_opcode_spm(node, fnId);
     }
 
     return opcode;
@@ -323,23 +345,32 @@ ADDRINT *get_opcode_jsc(Node *node) {
     return opcode;
 }
 
-ADDRINT *get_opcode_spm(Node *node) {
+ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
 
     static ADDRINT opcode[2];
     opcode[0] = ADDRINT_INVALID;
     opcode[1] = ADDRINT_INVALID;
 
-    map<ADDRINT,MWInst>::iterator it;
-    for (it = writes.begin(); it != writes.end(); ++it) {
-        MWInst write = it->second;
-        if (
-                write.valueSize == SPM_OPCODE_SIZE &&
-                (write.location > node->blockHead && write.location < node->blockTail)
-        ) {
-            opcode[0] = write.value;
-            opcode[1] = write.location;
-            break;
+    string fn = strTable.get(fnId);
+
+    // CFG Block (MBasicBlock) does not hold an opcode, so we analyze the recorded instruction
+    // data only if the current node is not a block node. Otherwise, we set is_cfgBlock to true.
+    if (!fnInCFGAllocs(fn)) {
+        map<ADDRINT,MWInst>::iterator it;
+        for (it = writes.begin(); it != writes.end(); ++it) {
+            MWInst write = it->second;
+            if (
+                    write.valueSize == SPM_OPCODE_SIZE &&
+                    (write.location > node->blockHead && write.location < node->blockTail)
+            ) {
+                opcode[0] = write.value;
+                opcode[1] = write.location;
+                break;
+            }
         }
+    }
+    else {
+        node->is_cfgBlock = true;
     }
 
     return opcode;
@@ -495,6 +526,7 @@ bool compareUINT8(UINT8 *target, UINT8 *to, UINT32 size) {
 }
 
 bool fnInAllocs(string fn) {
+
     bool is_exists = false;
     for (int i = 0; i < NODE_ALLOC_SIZE; i++) {
         if (fn == NODE_BLOCK_ALLOCATORS[i]) {
@@ -507,9 +539,23 @@ bool fnInAllocs(string fn) {
 }
 
 bool fnInFormers(string fn) {
+
     bool is_exists = false;
     for (int i = 0; i < NODE_FORMERS_SIZE; i++) {
         if (fn == NODE_FORMERS[i]) {
+            is_exists = true;
+            break;
+        }
+    }
+
+    return is_exists;
+}
+
+bool fnInCFGAllocs(string fn) {
+
+    bool is_exists = false;
+    for (int i = 0; i < CFG_BLOCK_ALLOC_SIZE; i++) {
+        if (fn == CFG_BLOCK_ALLOCATORS[i]) {
             is_exists = true;
             break;
         }
@@ -1204,6 +1250,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 
 void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 
+    /*
     // Retrieve the function name from the table.
     string fnName = strTable.get(fnId);
 
@@ -1224,6 +1271,7 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
         IRGraph->fnId2Name[fnId] = fnName;
         IRGraph->fnOrderId++;
     }
+    */
 }
 
 bool isSameAccess(Node *node, FnInfo fnInfo) {
@@ -1818,6 +1866,13 @@ void write2Json() {
         }
         jsonFile << "           \"address\": \"" << hex << node->intAddress << "\"," << endl; 
         jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
+        jsonFile << "           \"is_cfgBlock\": ";
+        if (node->is_cfgBlock) {
+            jsonFile << "true," << endl;
+        }
+        else {
+            jsonFile << "false," << endl;
+        }
         jsonFile << "           \"size\": " << dec << node->size << "," << endl; 
         // Write edge information.
         jsonFile << "           \"edges\": [";

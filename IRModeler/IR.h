@@ -43,7 +43,7 @@ struct ReplacedInfo {
 
 struct Node {
     Node() : 
-        id(-1), alive(true), opcodeId(0), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
+        id(-1), alive(true), opcode(-1), opcodeAddress(-1), opcodeId(0), is_cfgBlock(false), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -52,6 +52,7 @@ struct Node {
     ADDRINT opcode;                        // node's opcode.
     ADDRINT opcodeAddress;                 // tracks opcode address.
     int     opcodeId;                      // tracks opcode Id. The initial opcode ID = 0.
+    bool    is_cfgBlock;                   // tracks whether the current node is a CFG block or not.
     // Structure information.
     UINT32  size;                          // size of a node.
     Node    *edgeNodes[MAX_NODES];         // list of nodes connected to this node.
