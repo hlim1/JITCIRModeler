@@ -124,14 +124,9 @@ void imgInstrumentation(IMG img, void *v) {
  * Output: None
  */
 void insInstrumentation(INS ins, void *v) {
-    // DEBUG
-    cout << "-6" << endl;
 
     const ADDRINT addr = INS_Address(ins);
     
-    // DEBUG
-    cout << "-5" << endl;
-
     if(!entryPointFound) {
         if(addr == entryPoint) {
             PIN_RemoveInstrumentation();
@@ -161,9 +156,6 @@ void insInstrumentation(INS ins, void *v) {
     UINT32 memWriteOps = 0, memReadOps = 0;
     UINT32 destFlags = 0;
 
-    // DEBUG
-    cout << "-4" << endl;
-
     if(regsWritten) {
         getSrcDestInfo(ins, srcRegs, destRegs, memReadOps, memWriteOps, destFlags);
     }
@@ -180,9 +172,6 @@ void insInstrumentation(INS ins, void *v) {
             img = SEC_Img(sec);
         }
     }
-
-    // DEBUG
-    cout << "-3" << endl;
 
     // Initialize thread(s), if necessary.
     INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR) checkInitializedStatus, IARG_THREAD_ID, IARG_END);
@@ -205,9 +194,6 @@ void insInstrumentation(INS ins, void *v) {
     if (is_jit) {
         UINT32 fnId = strTable.insert(fnStr.c_str());
 
-        // DEBUG
-        cout << "-2" << endl;
-
         // Identify current system.
         if (system_id == UINT32_INVALID) {
             if (fnStr.find(V8_JIT) != std::string::npos) {
@@ -221,9 +207,6 @@ void insInstrumentation(INS ins, void *v) {
             }
         }
 
-        // DEBUG
-        cout << "-1" << endl;
-
         // Check whether or not the current instruction is an instruction for node allocator function.
         bool is_node_creation = false;
         for (int i = 0; i < NODE_CREATORS_SIZE; i++) {
@@ -233,17 +216,11 @@ void insInstrumentation(INS ins, void *v) {
             }
         }
 
-        // DEBUG
-        cout << "0" << endl;
-
         // If the current instruction is for a node allocation and it's a return, construct modeled IR node.
         if (is_node_creation && INS_IsRet(ins)) {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) constructModeledIRNode, IARG_UINT32,
                     fnId, IARG_UINT32, system_id, IARG_END);
         }
-
-        // DEBUG
-        cout << "1" << endl;
 
         // Record memory reads.
         if(regsWritten || memWritten) {
@@ -258,18 +235,12 @@ void insInstrumentation(INS ins, void *v) {
             }
         }
 
-        // DEBUG
-        cout << "2" << endl;
-
         // Record source registers.
         if(writeSrcRegs && (srcRegs->getSize() > 0)) {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) recordSrcRegs, 
                     IARG_FAST_ANALYSIS_CALL, IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_PTR, srcRegs, 
                     IARG_UINT32, fnId, IARG_UINT32, INS_Opcode(ins), IARG_END); 
         }
-
-        // DEBUG
-        cout << "3" << endl;
 
         // Record destination registers.
         if(writeDestRegs && (destRegs->getSize() > 0 || destFlags != 0)) {
@@ -283,17 +254,11 @@ void insInstrumentation(INS ins, void *v) {
                     IARG_UINT32, destFlags, IARG_END);
         }
 
-        // DEBUG
-        cout << "4" << endl;
-
         // Record memory writes.
         if(writeMemWrites && memWriteOps == 1) {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) recordMemWrite,
                     IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
         }
-
-        // DEBUG
-        cout << "5" << endl;
 
         // Analyze recorded instruction information, i.e., src. registers, dest. registers, and memory, etc.
         if(!INS_IsSyscall(ins)) {
@@ -321,9 +286,6 @@ void insInstrumentation(INS ins, void *v) {
                 fprintf(errorFile, "not analyzing records %s\n", INS_Disassemble(ins).c_str());
             }
         }
-
-        // DEBUG
-        cout << "6" << endl;
     }
 }
 
