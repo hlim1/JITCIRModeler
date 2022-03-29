@@ -161,6 +161,9 @@ bool is_former_range = false;
 
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
+    // DEBUG
+    cout << "Entering constructModeledIRNode()" << endl;
+
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
@@ -168,6 +171,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
+
+    // DEBUG
+    cout << "Node Address: " << hex << node->intAddress << endl;
 
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
@@ -177,6 +183,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->size = get_size(node->blockHead, system_id);
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
+
+    // DEBUG
+    cout << "Node Size: " << dec << node->size << endl;
 
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
@@ -189,6 +198,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->opcodeAddress = opcode[1];
     assert (node->opcode != ADDRINT_INVALID);
     assert(node->opcodeAddress != ADDRINT_INVALID);
+
+    // DEBUG
+    cout << "Node Opcode: " << hex << node->opcode << " (" << node->opcodeAddress << ")" << endl;
 
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
@@ -207,6 +219,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     targetSrcRegsKey = 0;
     targetDesRegsKey = 0;
     is_former_range = false;
+
+    // DEBUG
+    cout << "Exiting constructModeledIRNode()" << endl;
 }
 
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
@@ -698,6 +713,9 @@ ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT
     else if (system_id == JSC) {
         opcode = get_update_opcode_jsc(node, location, value, valueSize);
     }
+    else if (system_id == SPM) {
+        opcode = get_update_opcode_spm(node, location, value, valueSize);
+    }
 
     return opcode;
 }
@@ -737,6 +755,21 @@ ADDRINT *get_update_opcode_jsc(Node *node, ADDRINT location, ADDRINT value, ADDR
 
     // FOR JSC, opcode address doesn't change.
     if (location == node->opcodeAddress && valueSize == JSC_OPCODE_SIZE) {
+        opcode[0] = value;
+        opcode[1] = location;
+    }
+
+    return opcode;
+}
+
+ADDRINT *get_update_opcode_spm(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize) {
+
+    static ADDRINT opcode[2];
+    opcode[0] = ADDRINT_INVALID;
+    opcode[1] = ADDRINT_INVALID;
+
+    // FOR JSC, opcode address doesn't change.
+    if (location == node->opcodeAddress && valueSize == SPM_OPCODE_SIZE) {
         opcode[0] = value;
         opcode[1] = location;
     }
@@ -851,7 +884,7 @@ void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
         srcReg.lReg = fullLReg;
         srcReg.value = regValueInt;
 
-        assert (i < MAX_REGS);
+        assert (srcRegSize < MAX_REGS);
         srcRegsHolder[srcRegSize] = srcReg;
         srcRegSize++;
     }
@@ -894,7 +927,7 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
     read.value = valueInt;
     read.valueSize = readSize;
     // Store it in the reads map.
-    assert(reads.size() < reads.max_size());
+    assert(reads.size()+1 < reads.max_size());
     reads[readAddr] = read;
     // Track the last added key.
     lastMemReadLoc = readAddr;
@@ -987,13 +1020,17 @@ bool analyzeRecords(
     // separately.
     if (is_former_range || fnInAllocs(fn)) {
         for (int i = 0; i < srcRegSize; i++) {
-            assert(targetSrcRegs.size() < targetSrcRegs.max_size());
-            targetSrcRegs[targetSrcRegsKey] = srcRegsHolder[i];
+            assert (i < MAX_REGS);
+            RegInfo srcReg = srcRegsHolder[i];
+            assert(targetSrcRegs.size()+1 < targetSrcRegs.max_size());
+            targetSrcRegs[targetSrcRegsKey] =  srcReg;
             targetSrcRegsKey++;
-        } 
+        }
         for (int j = 0; j < desRegSize; j++) {
-            assert(targetDesRegs.size() < targetDesRegs.max_size());
-            targetDesRegs[targetDesRegsKey] = desRegsHolder[j];
+            assert (j < MAX_REGS);
+            RegInfo desReg = desRegsHolder[j];
+            assert(targetDesRegs.size()+1 < targetDesRegs.max_size());
+            targetDesRegs[targetDesRegsKey] = desReg;
             targetDesRegsKey++;
         }
     }
@@ -1008,6 +1045,7 @@ bool analyzeRecords(
         reads[lastMemReadLoc].regSize = srcRegSize;
         populate_regs = false;
     }
+
     memset(srcRegsHolder, 0, srcRegSize);
     srcRegSize = 0;
     memset(desRegsHolder, 0, desRegSize);
@@ -1069,7 +1107,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
         desReg.lReg = fullLReg;
         desReg.value = regValueInt;
 
-        assert (i < MAX_REGS);
+        assert (desRegSize < MAX_REGS);
         desRegsHolder[desRegSize] = desReg;
         desRegSize++;
     }
@@ -1117,12 +1155,12 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
     write.regSize = srcRegSize;
 
     // Add the 'write' object to the 'writes' map.
-    assert(writes.size() < writes.max_size());
+    assert(writes.size()+1 < writes.max_size());
     writes[data.memWriteAddr] = write;
 
     // Collect location and value in MWs only in the node former function instructions.
     if (is_range) {
-        assert(targetMWs.size() < targetMWs.max_size());
+        assert(targetMWs.size()+1 < targetMWs.max_size());
         targetMWs[data.memWriteAddr] = write;
     }
 
@@ -1155,6 +1193,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         Node *node = IRGraph->nodes[nodeId];
         // Check if the memory write value is an address of a node.
         int value_id = compareValuetoIRNodes(value);
+
         // Check if the location is already occupied edge.
         int edge_idx = getEdgeIdx(node, location);
         // If the location is an already occupied edge, handle edge removal or edge replace.
@@ -1204,6 +1243,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 
 void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 
+    /*
     // Retrieve the function name from the table.
     string fnName = strTable.get(fnId);
 
@@ -1215,15 +1255,16 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
     // Avoid adding duplicate fnInfo one after another.
     if ((node->fnInfo).empty() || !isSameAccess(node, fnInfo)) {
         // Update the node's function info. map.
-        assert((node->fnInfo).size() < (node->fnInfo).max_size());
+        assert((node->fnInfo).size()+1 < (node->fnInfo).max_size());
         node->fnInfo[IRGraph->fnOrderId] = fnInfo;
         node->lastInfoId = IRGraph->fnOrderId;
 
         // Update IR's function order id and map.
-        assert((IRGraph->fnId2Name).size() < (IRGraph->fnId2Name).max_size());
+        assert((IRGraph->fnId2Name).size()+1 < (IRGraph->fnId2Name).max_size());
         IRGraph->fnId2Name[fnId] = fnName;
         IRGraph->fnOrderId++;
     }
+    */
 }
 
 bool isSameAccess(Node *node, FnInfo fnInfo) {
@@ -1260,7 +1301,7 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
     // this case by checking that the returned value from the earlier line is NOT NULL.
     if (target != NULL) {
         // Update node's 'remove' optimization information.
-        assert((node->fnOrder2remNodeId).size() < (node->fnOrder2remNodeId).max_size());
+        assert((node->fnOrder2remNodeId).size()+1 < (node->fnOrder2remNodeId).max_size());
         node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
         // Set the removed edge to NULL.
         assert(edge_idx < node->numberOfEdges);
@@ -1286,7 +1327,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
         replacedInfo.nodeIdFrom = INT_INVALID;
         replacedInfo.nodeIdTo = to->id;
     }
-    assert((node->fnOrder2repInfo).size() < (node->fnOrder2repInfo).max_size());
+    assert((node->fnOrder2repInfo).size()+1 < (node->fnOrder2repInfo).max_size());
     node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
     // Replace existing edge node with the node with 'value_id'.
     assert(edge_idx < node->numberOfEdges);
@@ -1300,7 +1341,7 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
     assert(value_id < IRGraph->lastNodeId);
     Node *adding = IRGraph->nodes[value_id];
     // Update node's 'add' optimization information.
-    assert((node->fnOrder2addNodeId).size() < (node->fnOrder2addNodeId).max_size());
+    assert((node->fnOrder2addNodeId).size()+1 < (node->fnOrder2addNodeId).max_size());
     node->fnOrder2addNodeId[IRGraph->fnOrderId] = adding->id;
     // Add an edge from 'this' node to the node with 'value_id'. 
     assert (node->numberOfEdges < MAX_NODES);
@@ -1358,7 +1399,7 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
     }
 
     if (is_written) {
-        assert((node->fnOrder2dirValOpt).size() < (node->fnOrder2dirValOpt).max_size());
+        assert((node->fnOrder2dirValOpt).size()+1 < (node->fnOrder2dirValOpt).max_size());
         node->fnOrder2dirValOpt[IRGraph->fnOrderId] = directValOpt;
         // Update function log information.
         updateLogInfo(node, fnId, VALUE_CHANGE);
@@ -1381,7 +1422,7 @@ void opcodeUpdate(
         node->opcodeAddress = opcode[1];
         // Update opcode update information.
         node->opcodeId++;
-        assert((node->id2Opcode).size() < (node->id2Opcode).max_size());
+        assert((node->id2Opcode).size()+1 < (node->id2Opcode).max_size());
         node->id2Opcode[node->opcodeId] = opcode[0];
         // Update function log information.
         updateLogInfo(node, fnId, OP_UPDATE);
