@@ -31,20 +31,22 @@ const std::string NODE_FORMERS[2] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[5] = {
+const std::string NODE_BLOCK_ALLOCATORS[6] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
-    "js::jit::MParameter::New<int const&>"
+    "js::jit::MParameter::New<int const&>",
+    "js::jit::MConstant::New"
 };
 
-const std::string MAIN_NODE_CREATORS[5] { 
+const std::string MAIN_NODE_CREATORS[6] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
-    "js::jit::MParameter::New<int const&>"
+    "js::jit::MParameter::New<int const&>",
+    "js::jit::MConstant::New"
 };
 
 const std::string CFG_BLOCK_ALLOCATORS[1] = {
@@ -52,8 +54,8 @@ const std::string CFG_BLOCK_ALLOCATORS[1] = {
 };
 
 const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 5;
-const int NODE_CREATORS_SIZE = 5;
+const int NODE_ALLOC_SIZE = 6;
+const int NODE_CREATORS_SIZE = 6;
 const int CFG_BLOCK_ALLOC_SIZE = 1;
 
 // Main modeled IR constructor function.
