@@ -9,4 +9,7 @@
 - ```880207V8.js```: [V8 Bug Report #880207](https://bugs.chromium.org/p/chromium/issues/detail?id=880207)
 - ```913296V8.js```: [V8 Bug Report #913296](https://bugs.chromium.org/p/chromium/issues/detail?id=913296&q=component%3ABlink%3EJavaScript%3ECompiler%20status%3DFixed&can=1)
 - ```9113V8.js```: [V8 Bug Report #9113](https://bugs.chromium.org/p/v8/issues/detail?id=9113&q=component%3DCompiler%20type%3DBug%20status%3DFixed&can=1)
-- ```1684085SPM.js```: [SpiderMonkey Report #16840855](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
+- ```1684085SPM_ceil.js```: [SpiderMonkey Report #16840855 with 'ceil()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
+- ```1684085SPM_floor.js```: [SpiderMonkey Report #16840855 with 'floor()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
+- ```1684085SPM_round.js```: [SpiderMonkey Report #16840855 with 'round()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
+- ```1684085SPM_trunc.js```: [SpiderMonkey Report #16840855 with 'trunc()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
