@@ -60,3 +60,13 @@
 - ```test_58.js```: BigInt 64 array from length (```BigInt64Array()```).
 - ```test_59.js```: BigInt 64 array from array (```BigInt64Array()```).
 - ```test_60.js```: BigInt 64 array from another TypedArray (```BigInt64Array()```).
+- ```test_61.js```: BigInt 64 array from an ArrayBuffer (```BigInt64Array()```).
+- ```test_62.js```: BigInt 64 array from an iterable (```BigInt64Array()```).
+- ```test_63.js```: BigUint 64 array from length (```BigUint64Array()```).
+- ```test_64.js```: BigUint 64 array from array (```BigUint64Array()```).
+- ```test_65.js```: BigUint 64 array from another TypedArray (```BigUint64Array()```).
+- ```test_66.js```: BigUint 64 array from an ArrayBuffer (```BigUint64Array()```).
+- ```test_67.js```: BigUint 64 array from an iterable (```BigUint64Array()```).
+- ```test_68.js```: Int 16 array from length (```Int16Array()```).
+- ```test_69.js```: Int 16 array from array (```Int16Array()```).
+- ```test_70.js```: Int 16 array from another TypedArray (```Int16Array()```).
