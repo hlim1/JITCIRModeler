@@ -546,8 +546,6 @@ bool fnInAllocs(string fn) {
     bool is_exists = false;
     for (int i = 0; i < NODE_ALLOC_SIZE; i++) {
         if (NODE_BLOCK_ALLOCATORS[i] == fn) {
-        //if (NODE_BLOCK_ALLOCATORS[i].find(fn) != std::string::npos) {
-        //if (fn.find(NODE_BLOCK_ALLOCATORS[i]) != std::string::npos) {
             is_exists = true;
             break;
         }
@@ -561,8 +559,6 @@ bool fnInFormers(string fn) {
     bool is_exists = false;
     for (int i = 0; i < NODE_FORMERS_SIZE; i++) {
         if (NODE_FORMERS[i] == fn) {
-        //if (NODE_FORMERS[i].find(fn) != std::string::npos) {
-        //if (fn.find(NODE_FORMERS[i]) != std::string::npos) {
             is_exists = true;
             break;
         }
@@ -576,8 +572,6 @@ bool fnInCreators(string fn) {
     bool is_exists = false;
     for (int i = 0; i < NODE_CREATORS_SIZE; i++) {
         if (MAIN_NODE_CREATORS[i] == fn) {
-        //if (MAIN_NODE_CREATORS[i].find(fn) != std::string::npos) {
-        //if (fn.find(MAIN_NODE_CREATORS[i]) != std::string::npos) {
             is_exists = true;
             break;
         }
@@ -591,8 +585,6 @@ bool fnInCFGAllocs(string fn) {
     bool is_exists = false;
     for (int i = 0; i < CFG_BLOCK_ALLOC_SIZE; i++) {
         if (CFG_BLOCK_ALLOCATORS[i] == fn) {
-        //if (CFG_BLOCK_ALLOCATORS[i].find(fn) != std::string::npos) {
-        //if (fn.find(CFG_BLOCK_ALLOCATORS[i]) != std::string::npos) {
             is_exists = true;
             break;
         }
