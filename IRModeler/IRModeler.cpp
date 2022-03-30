@@ -209,7 +209,7 @@ void insInstrumentation(INS ins, void *v) {
         }
 
         // Check whether or not the current instruction is an instruction for node allocator function.
-        bool is_node_creation = fnInAllocs(fnStr);
+        bool is_node_creation = fnInCreators(fnStr);
 
         // If the current instruction is for a node allocation and it's a return, construct modeled IR node.
         if (is_node_creation && INS_IsRet(ins)) {

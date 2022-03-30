@@ -141,6 +141,7 @@ UINT8*  addrintTouint8(ADDRINT target, UINT32 size);
 bool    elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
 bool    fnInAllocs(std::string fn);
 bool    fnInFormers(std::string fn);
+bool    fnInCreators(std::string fn);
 bool    fnInCFGAllocs(std::string fn);
 int     compareValuetoIRNodes(ADDRINT value);
 int     getEdgeEdx(Node *node, ADDRINT address);
