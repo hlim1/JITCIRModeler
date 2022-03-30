@@ -190,6 +190,7 @@ void insInstrumentation(INS ins, void *v) {
     ) {
         is_jit = true;
     }
+
     // Only anlayze the instructions that execute after the jit compiler executed.
     if (is_jit) {
         UINT32 fnId = strTable.insert(fnStr.c_str());
