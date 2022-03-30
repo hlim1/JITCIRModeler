@@ -2,6 +2,7 @@
 
 function bigint64array(x) {
     let arr = new BigInt64Array(x);
+    arr[0] = 42;
 }
 
 for (let i = 0; i < 10000; i++) {
