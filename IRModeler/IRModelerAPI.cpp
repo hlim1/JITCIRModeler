@@ -161,12 +161,6 @@ bool is_former_range = false;
 
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
-    // DEBUG
-    cout << "Entering constructModeledIRNode()" << endl;
-    string fn = strTable.get(fnId);
-    cout << "Function: " << fn << endl;
-
-
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
@@ -174,9 +168,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
-
-    // DEBUG
-    cout << "Node Address: " << hex << node->intAddress << endl;
 
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
@@ -186,9 +177,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->size = get_size(node->blockHead, system_id);
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
-
-    // DEBUG
-    cout << "Node Size: " << dec << node->size << endl;
 
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
@@ -202,26 +190,8 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Since a CFG block node has no opcode, we want to check the validity of opcode value
     // only for all non-CFG block nodes.
     if (!node->is_cfgBlock) {
-        // DEBUG
-        if (node->opcode == ADDRINT_INVALID) {
-            map<ADDRINT,MWInst>::iterator it;
-            for (it = writes.begin(); it != writes.end(); ++it) {
-                MWInst write = it->second;
-                if (write.valueSize == SPM_OPCODE_SIZE) {
-                    cout << "Write Value: " << hex << write.value << "(" << write.location << "); ";
-                    string fn = strTable.get(write.fnId);
-                    cout << fn << endl;
-                }
-            }
-        }
         assert (node->opcode != ADDRINT_INVALID);
         assert (node->opcodeAddress != ADDRINT_INVALID);
-        // DEBUG
-        cout << "Node Opcode: " << hex << node->opcode << "(" << node->opcodeAddress << ")" << endl;
-    }
-    else {
-        // DEBUG
-        cout << "Node is CFG Block" << endl;
     }
 
     // Get initial (in)direct value assigned to the node block.
@@ -241,10 +211,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     targetSrcRegsKey = 0;
     targetDesRegsKey = 0;
     is_former_range = false;
-
-    // DEBUG
-    cout << "Exiting constructModeledIRNode()" << endl;
-    cout << endl;
 }
 
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
@@ -1201,13 +1167,6 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
         // Convert value (UINT8) to ADDRINT type value.
         valueInt = uint8Toaddrint(value, data.memWriteSize);
     }
-
-    // DEBUG
-    //if (fn == "js::jit::MCheckOverRecursed::New<>") {
-    //    cout << "Entering js::jit::MCheckOverRecursed::New<>; ";
-    //    cout << "Value: " << hex << valueInt << "(" << data.memWriteAddr << ")";
-    //    cout << "(" << dec << data.memWriteSize << ")" << endl;
-    //}
 
     // Create a new object to hold the memory write and register information of the instruction.
     MWInst write;
