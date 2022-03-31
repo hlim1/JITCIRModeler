@@ -31,7 +31,7 @@ const std::string NODE_FORMERS[2] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[20] = {
+const std::string NODE_BLOCK_ALLOCATORS[21] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
@@ -41,7 +41,9 @@ const std::string NODE_BLOCK_ALLOCATORS[20] = {
     //"js::jit::MCheckOverRecursed::New<>",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
     //"js::jit::MGlobalDeclInstantiation::New<>",
+    "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
+    "js::jit::MDiv::New",
     //"js::jit::MBail::New",
     "js::jit::MOsrEntry::New<>",
     "js::jit::MReturn::New<js::jit::MDefinition*&>",
@@ -53,13 +55,12 @@ const std::string NODE_BLOCK_ALLOCATORS[20] = {
     "js::jit::MCompare::New<js::jit::MDefinition*&, js::jit::MDefinition*&, JSOp&, js::jit::MCompare::CompareType&>",
     //"js::jit::MNurseryObject::New<unsigned int>",
     "js::jit::MCall::New",
-    "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MPostWriteBarrier::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
     "js::jit::MBox::New<js::jit::MDefinition*&>",
     "js::jit::MLimitedTruncate::New<js::jit::MDefinition*&, js::jit::TruncateKind>"
 };
 
-const std::string MAIN_NODE_CREATORS[20] { 
+const std::string MAIN_NODE_CREATORS[21] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
@@ -69,7 +70,9 @@ const std::string MAIN_NODE_CREATORS[20] {
     //"js::jit::MCheckOverRecursed::New<>",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
     //"js::jit::MGlobalDeclInstantiation::New<>",
+    "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
+    "js::jit::MDiv::New",
     //"js::jit::MBail::New",
     "js::jit::MOsrEntry::New<>",
     "js::jit::MReturn::New<js::jit::MDefinition*&>",
@@ -81,7 +84,6 @@ const std::string MAIN_NODE_CREATORS[20] {
     "js::jit::MCompare::New<js::jit::MDefinition*&, js::jit::MDefinition*&, JSOp&, js::jit::MCompare::CompareType&>",
     //"js::jit::MNurseryObject::New<unsigned int>",
     "js::jit::MCall::New",
-    "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MPostWriteBarrier::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
     "js::jit::MBox::New<js::jit::MDefinition*&>",
     "js::jit::MLimitedTruncate::New<js::jit::MDefinition*&, js::jit::TruncateKind>"
@@ -92,8 +94,8 @@ const std::string CFG_BLOCK_ALLOCATORS[1] = {
 };
 
 const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 20;
-const int NODE_CREATORS_SIZE = 20;
+const int NODE_ALLOC_SIZE = 21;
+const int NODE_CREATORS_SIZE = 21;
 const int CFG_BLOCK_ALLOC_SIZE = 1;
 
 // Main modeled IR constructor function.
