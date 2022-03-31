@@ -31,68 +31,60 @@ const std::string NODE_FORMERS[2] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[24] = {
+const std::string NODE_BLOCK_ALLOCATORS[25] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
     "js::jit::MParameter::New<int const&>",
     "js::jit::MConstant::New",
-    //"js::jit::MCheckOverRecursed::New<>",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
-    //"js::jit::MGlobalDeclInstantiation::New<>",
     "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
     "js::jit::MDiv::New",
     "js::jit::MMul::New",
     "js::jit::MMod::New",
-    //"js::jit::MBail::New",
     "js::jit::MOsrEntry::New<>",
     "js::jit::MReturn::New<js::jit::MDefinition*&>",
-    //"js::jit::MInterruptCheck::New<>",
     "js::jit::MEnclosingEnvironment::New",
     "js::jit::MGuardShape::New<js::jit::MDefinition*&, js::Shape*&>",
     "js::jit::MSlots::New<js::jit::MDefinition*&>",
     "js::jit::MLoadDynamicSlot::New<js::jit::MSlots*&, unsigned long&>",
     "js::jit::MCompare::New<js::jit::MDefinition*&, js::jit::MDefinition*&, JSOp&, js::jit::MCompare::CompareType&>",
-    //"js::jit::MNurseryObject::New<unsigned int>",
     "js::jit::MCall::New",
     "js::jit::MPostWriteBarrier::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
     "js::jit::MBox::New<js::jit::MDefinition*&>",
     "js::jit::MLimitedTruncate::New<js::jit::MDefinition*&, js::jit::TruncateKind>",
-    "js::jit::MUnbox::New"
+    "js::jit::MUnbox::New",
+    "js::jit::MUnreachableResult::New<js::jit::MIRType&>"
 };
 
-const std::string MAIN_NODE_CREATORS[23] { 
+const std::string MAIN_NODE_CREATORS[25] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
     "js::jit::MParameter::New<int const&>",
     "js::jit::MConstant::New",
-    //"js::jit::MCheckOverRecursed::New<>",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
-    //"js::jit::MGlobalDeclInstantiation::New<>",
     "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
     "js::jit::MDiv::New",
     "js::jit::MMul::New",
     "js::jit::MMod::New",
-    //"js::jit::MBail::New",
     "js::jit::MOsrEntry::New<>",
     "js::jit::MReturn::New<js::jit::MDefinition*&>",
-    //"js::jit::MInterruptCheck::New<>",
     "js::jit::MEnclosingEnvironment::New",
     "js::jit::MGuardShape::New<js::jit::MDefinition*&, js::Shape*&>",
     "js::jit::MSlots::New<js::jit::MDefinition*&>",
     "js::jit::MLoadDynamicSlot::New<js::jit::MSlots*&, unsigned long&>",
     "js::jit::MCompare::New<js::jit::MDefinition*&, js::jit::MDefinition*&, JSOp&, js::jit::MCompare::CompareType&>",
-    //"js::jit::MNurseryObject::New<unsigned int>",
     "js::jit::MCall::New",
     "js::jit::MPostWriteBarrier::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
     "js::jit::MBox::New<js::jit::MDefinition*&>",
     "js::jit::MLimitedTruncate::New<js::jit::MDefinition*&, js::jit::TruncateKind>",
-    "js::jit::MUnbox::New"
+    "js::jit::MUnbox::New",
+    "js::jit::MUnreachableResult::New<js::jit::MIRType&>"
 };
 
 const std::string CFG_BLOCK_ALLOCATORS[1] = {
@@ -100,8 +92,8 @@ const std::string CFG_BLOCK_ALLOCATORS[1] = {
 };
 
 const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 24;
-const int NODE_CREATORS_SIZE = 24;
+const int NODE_ALLOC_SIZE = 25;
+const int NODE_CREATORS_SIZE = 25;
 const int CFG_BLOCK_ALLOC_SIZE = 1;
 
 // Main modeled IR constructor function.
