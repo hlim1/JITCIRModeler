@@ -1269,7 +1269,6 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 
 void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 
-    /*
     // Retrieve the function name from the table.
     string fnName = strTable.get(fnId);
 
@@ -1290,7 +1289,6 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
         IRGraph->fnId2Name[fnId] = fnName;
         IRGraph->fnOrderId++;
     }
-    */
 }
 
 bool isSameAccess(Node *node, FnInfo fnInfo) {
