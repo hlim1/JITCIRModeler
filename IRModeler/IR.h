@@ -76,7 +76,7 @@ struct Node {
 };
 
 struct IR {
-    IR() : id(-1), lastNodeId(0), fnOrderId(0) {}
+    IR() : id(-1), lastNodeId(0), fnOrderId(0), systemId(-1) {}
 
     int         id;                             // ir graph id.
     Node        *nodes[MAX_NODES];              // array holding ptrs to node objects.
@@ -84,6 +84,7 @@ struct IR {
     int         lastNodeId;                     // id of a last node in the array.
     int         fnOrderId;                      // id indicating the order of function access.
     std::map<UINT32, std::string> fnId2Name;    // map to hold function id to name for look up.
+    UINT32      systemId;                       // JIT compiler system ID.
 };
 
 #endif

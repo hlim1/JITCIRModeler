@@ -107,6 +107,7 @@ ADDRINT get_size(ADDRINT address, UINT32 system_id);
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id);
 void    get_init_block_locs(Node *node, UINT32 system_id);
 ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
+void    check_and_fix_opcode();
 
 // Above functions call functions below to handle system-specific information extraction.
 // To handle other system's opcode extraction, add function below and call from get_opcode(..).
@@ -127,6 +128,7 @@ ADDRINT get_address_spm();
 ADDRINT *get_opcode_spm(Node *node, UINT32 fnId);
 ADDRINT get_size_spm(ADDRINT address);
 ADDRINT *get_update_opcode_spm(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
+void    check_and_fix_opcode_spm();
 
 // Optimization functions.
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);
