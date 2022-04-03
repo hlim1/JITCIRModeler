@@ -180,8 +180,14 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
     // Get node size.
     node->size = get_size(node->blockHead, system_id);
-    assert (node->size != ADDRINT_INVALID);
-    assert (node->size < MAX_NODE_SIZE);
+
+    if (node->size == ADDRINT_INVALID) {
+        string fn = strTable.get(fnId);
+        cout << "ERROR: Size Missing. Function Name: " << fn << ". ";
+        cout << "System ID: " << system_id << endl;
+        assert (node->size != ADDRINT_INVALID);
+        assert (node->size < MAX_NODE_SIZE);
+    }
 
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
@@ -198,7 +204,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
         string fn = strTable.get(fnId);
         cout << "ERROR: Opcode Missing. Function Name: " << fn << ". ";
         cout << "System ID: " << system_id << endl;
-
         assert (node->opcode != ADDRINT_INVALID);
         assert (node->opcodeAddress != ADDRINT_INVALID);
     }
@@ -345,8 +350,8 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
     string fn = strTable.get(fnId);
 
     // CFG Block (MBasicBlock) does not hold an opcode, so we analyze the recorded instruction
-    // data only if the current node is not a block node. Otherwise, we set is_cfgBlock to true.
-    if (!fnInCFGAllocs(fn)) {
+    // data only if the current node is not a block node. Otherwise, we set is_nonIR to true.
+    if (!fnInNonIRAllocs(fn)) {
         map<ADDRINT,MWInst>::iterator it;
         for (it = writes.begin(); it != writes.end(); ++it) {
             MWInst write = it->second;
@@ -361,7 +366,7 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
         }
     }
     else {
-        node->is_cfgBlock = true;
+        node->is_nonIR = true;
     }
 
     return opcode;
@@ -555,11 +560,11 @@ bool fnInCreators(string fn) {
     return is_exists;
 }
 
-bool fnInCFGAllocs(string fn) {
+bool fnInNonIRAllocs(string fn) {
 
     bool is_exists = false;
-    for (int i = 0; i < CFG_BLOCK_ALLOC_SIZE; i++) {
-        if (CFG_BLOCK_ALLOCATORS[i] == fn) {
+    for (int i = 0; i < NONIR_NODE_ALLOC_SIZE; i++) {
+        if (NONIR_NODE_ALLOCATORS[i] == fn) {
             is_exists = true;
             break;
         }
@@ -680,7 +685,7 @@ ADDRINT get_size_spm(ADDRINT address) {
             break;
         }
     }
-    assert (size != ADDRINT_INVALID);
+    //assert (size != ADDRINT_INVALID);
 
     return size;
 }
@@ -823,6 +828,24 @@ void check_and_fix_opcode() {
     else if (IRGraph->systemId == SPM) {
         check_and_fix_opcode_spm();
     }
+    // DEBUG
+    for (int i = 0; i < IRGraph->lastNodeId; i++) {
+        Node *node = IRGraph->nodes[i];
+        if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
+            cout << "Node: " << hex << node->intAddress << endl;
+            map<ADDRINT,MRInst>::iterator it;
+            for (it = reads.begin(); it != reads.end(); ++it) {
+                MRInst read = it->second;
+                if (read.valueSize == SPM_OPCODE_SIZE) {
+                    cout << "   MR[" << hex << read.location << "]=" << read.value << "; ";
+                    for (int j = 0; j < read.regSize; j++) {
+                        cout << hex << read.srcRegs[j].value << ", ";
+                    }
+                    cout << endl;
+                }
+            }
+        }
+    }
 }
 
 void check_and_fix_opcode_spm() {
@@ -831,7 +854,7 @@ void check_and_fix_opcode_spm() {
     map<int, ADDRINT> opMissingNodeIds;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
-        if (!node->is_cfgBlock && node->opcode == ADDRINT_INVALID) {
+        if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
             opMissingNodeIds[i] = node->intAddress;
         }
     }
@@ -1016,7 +1039,7 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
     // Mark that the tool needs to update the register.
     populate_regs = true;
 
-    // Check if the current memory location belongs to any one of existing node.
+    // Check if the current memory location belongs to any of existing node.
     ADDRINT nodeId = ADDRINT_INVALID;
     bool is_node_block = false;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
@@ -1094,12 +1117,6 @@ bool analyzeRecords(
         data.destRegs = NULL;
     }
 
-    // If the instruction has memory write, then analyze memory write, e.g., MW[..]=...
-    if(data.memWriteSize != 0) {
-        analyzeMemWrites(tid, fnId, is_former_range, system_id);
-        data.memWriteSize = 0; 
-    }
-
     // Keep tracks of source register information of the node allocator function instructions
     // separately.
     if (is_former_range || fnInAllocs(fn)) {
@@ -1119,8 +1136,14 @@ bool analyzeRecords(
         }
     }
 
-    // If there was a memory read in the current node allocator function instruction, then populate
-    // the source register information to the MR tracker object.
+    // If the instruction has memory write, analyze memory write, e.g., MW[..]=...
+    if(data.memWriteSize != 0) {
+        analyzeMemWrites(tid, fnId, is_former_range, system_id);
+        data.memWriteSize = 0; 
+    }
+
+    // If the instruction has memory read, populate the source register
+    // information to the MR tracker object.
     if (populate_regs) {
         for (int i = 0; i < srcRegSize; i++) {
             assert(i < MAX_REGS);
@@ -1941,8 +1964,8 @@ void write2Json() {
         }
         jsonFile << "           \"address\": \"" << hex << node->intAddress << "\"," << endl; 
         jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
-        jsonFile << "           \"is_cfgBlock\": ";
-        if (node->is_cfgBlock) {
+        jsonFile << "           \"is_nonIR\": ";
+        if (node->is_nonIR) {
             jsonFile << "true," << endl;
         }
         else {
@@ -2122,7 +2145,7 @@ void write2Json() {
  **/
 void endFile() {
     // Check and fix, if needed, missing IR node opcode.
-    // check_and_fix_opcode();
+    //check_and_fix_opcode();
     // Write IR to a file in JSON.
     write2Json();
 }
