@@ -43,7 +43,7 @@ struct ReplacedInfo {
 
 struct Node {
     Node() : 
-        id(-1), alive(true), opcode(-1), opcodeAddress(-1), opcodeId(0), is_cfgBlock(false), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
+        id(-1), alive(true), opcode(-1), opcodeAddress(-1), opcodeId(0), is_nonIR(false), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -52,7 +52,7 @@ struct Node {
     ADDRINT opcode;                        // node's opcode.
     ADDRINT opcodeAddress;                 // tracks opcode address.
     int     opcodeId;                      // tracks opcode Id. The initial opcode ID = 0.
-    bool    is_cfgBlock;                   // tracks whether the current node is a CFG block or not.
+    bool    is_nonIR;                      // tracks whether the current node is a IR node or not.
     // Structure information.
     UINT32  size;                          // size of a node.
     Node    *edgeNodes[MAX_NODES];         // list of nodes connected to this node.
@@ -61,8 +61,8 @@ struct Node {
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
     // Metadata information.
-    ADDRINT offsets[MAX_NODE_SIZE];             // tracks occupied memory locations between the block head & tail.
-    ADDRINT valuesInLocs[MAX_NODE_SIZE];        // tracks values written to memory locations.
+    ADDRINT offsets[MAX_NODE_SIZE];        // tracks occupied memory locations between the block head & tail.
+    ADDRINT valuesInLocs[MAX_NODE_SIZE];   // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
     std::map<int, int> fnOrder2addNodeId;           // track the function order id to the id of added node.
