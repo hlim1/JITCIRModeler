@@ -31,7 +31,7 @@ const std::string NODE_FORMERS[2] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[25] = {
+const std::string NODE_BLOCK_ALLOCATORS[27] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
@@ -56,10 +56,12 @@ const std::string NODE_BLOCK_ALLOCATORS[25] = {
     "js::jit::MBox::New<js::jit::MDefinition*&>",
     "js::jit::MLimitedTruncate::New<js::jit::MDefinition*&, js::jit::TruncateKind>",
     "js::jit::MUnbox::New",
-    "js::jit::MUnreachableResult::New<js::jit::MIRType&>"
+    "js::jit::MUnreachableResult::New<js::jit::MIRType&>",
+    "js::jit::MCheckReturn::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
+    "js::jit::MCheckThisReinit::New<js::jit::MDefinition*&>"
 };
 
-const std::string MAIN_NODE_CREATORS[25] { 
+const std::string MAIN_NODE_CREATORS[27] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
@@ -84,17 +86,20 @@ const std::string MAIN_NODE_CREATORS[25] {
     "js::jit::MBox::New<js::jit::MDefinition*&>",
     "js::jit::MLimitedTruncate::New<js::jit::MDefinition*&, js::jit::TruncateKind>",
     "js::jit::MUnbox::New",
-    "js::jit::MUnreachableResult::New<js::jit::MIRType&>"
+    "js::jit::MUnreachableResult::New<js::jit::MIRType&>",
+    "js::jit::MCheckReturn::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
+    "js::jit::MCheckThisReinit::New<js::jit::MDefinition*&>"
 };
 
-const std::string CFG_BLOCK_ALLOCATORS[1] = {
-    "js::jit::MBasicBlock::New"
+const std::string NONIR_NODE_ALLOCATORS[2] = {
+    "js::jit::MBasicBlock::New",
+    "js::jit::MResumePoint::New"
 };
 
 const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 25;
-const int NODE_CREATORS_SIZE = 25;
-const int CFG_BLOCK_ALLOC_SIZE = 1;
+const int NODE_ALLOC_SIZE = 27;
+const int NODE_CREATORS_SIZE = 27;
+const int NONIR_NODE_ALLOC_SIZE = 2;
 
 // Main modeled IR constructor function.
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
@@ -146,7 +151,7 @@ bool    elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
 bool    fnInAllocs(std::string fn);
 bool    fnInFormers(std::string fn);
 bool    fnInCreators(std::string fn);
-bool    fnInCFGAllocs(std::string fn);
+bool    fnInNonIRAllocs(std::string fn);
 int     compareValuetoIRNodes(ADDRINT value);
 int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isDirectAssignment(ADDRINT value);
