@@ -208,6 +208,11 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
         assert (node->opcodeAddress != ADDRINT_INVALID);
     }
 
+    // DEBUG
+    //string fn = strTable.get(fnId);
+    //cout << "Function: " << fn << "; Node ID: " << dec << node->id << "; ";
+    //cout << "Node Opcode: " << hex << node->opcode << endl;
+
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
 
