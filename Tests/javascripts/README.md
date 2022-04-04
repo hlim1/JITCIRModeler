@@ -70,3 +70,15 @@
 - ```test_68.js```: Int 16 array from length (```Int16Array()```).
 - ```test_69.js```: Int 16 array from array (```Int16Array()```).
 - ```test_70.js```: Int 16 array from another TypedArray (```Int16Array()```).
+- ```test_71.js```: Math fround (```Math.fround()```).
+- ```test_72.js```: Math expm1 (```Math.expm1()```).
+- ```test_73.js```: Math cbrt (```Math.cbrt()```).
+- ```test_74.js```: Math hypot (```Math.hypot()```).
+- ```test_75.js```: Math log10 (```Math.log10()```).
+- ```test_76.js```: Math log1p (```Math.log1p()```).
+- ```test_77.js```: Math log2 (```Math.log2()```).
+- ```test_78.js```: Math sign (```Math.sign()```).
+- ```test_79.js```: Math sinh (```Math.sinh()```).
+- ```test_80.js```: Math tanh (```Math.tanh()```).
+- ```test_81.js```: Math trunc (```Math.trunc()```).
+- ```test_82.js```: Math imul (```Math.imul()```).
