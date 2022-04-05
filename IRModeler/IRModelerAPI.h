@@ -31,7 +31,7 @@ const std::string NODE_FORMERS[2] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[29] = {
+const std::string NODE_BLOCK_ALLOCATORS[44] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
@@ -60,10 +60,25 @@ const std::string NODE_BLOCK_ALLOCATORS[29] = {
     "js::jit::MCheckReturn::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
     "js::jit::MCheckThisReinit::New<js::jit::MDefinition*&>",
     "js::jit::MSuperFunction::New<js::jit::MDefinition*&>",
-    "js::jit::MBigIntPow::New<js::jit::MDefinition*&, js::jit::MDefinition*&>"
+    "js::jit::MBigIntPow::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
+    "js::jit::MAbs::New<js::jit::MDefinition*&, js::jit::MIRType>",
+    "js::jit::MMathFunction::New<js::jit::MDefinition*&, js::UnaryMathFunction&>",
+    "js::jit::MSqrt::New<js::jit::MDefinition*&, js::jit::MIRType>",
+    "js::jit::MCeil::New<js::jit::MDefinition*&>",
+    "js::jit::MFloor::New<js::jit::MDefinition*&>",
+    "js::jit::MRound::New<js::jit::MDefinition*&>",
+    "js::jit::MNewArray::MNewArray",
+    "js::jit::MToNumberInt32::New<js::jit::MDefinition*&, js::jit::IntConversionInputKind>",
+    "js::jit::MStoreElement::New<js::jit::MElements*&, js::jit::MConstant*&, js::jit::MDefinition*&, bool>",
+    "js::jit::MToFloat32::New<js::jit::MDefinition*&>",
+    "js::jit::MPhi::New",
+    "js::jit::MSlots::New<js::jit::MDefinition*&>",
+    "js::jit::MNearbyInt::New<js::jit::MDefinition*&, js::jit::MIRType, js::jit::RoundingMode>",
+    "js::jit::MNot::New<js::jit::MDefinition*&>",
+    "js::jit::MTest::New<js::jit::MDefinition*, js::jit::MBasicBlock*, js::jit::MBasicBlock*>"
 };
 
-const std::string MAIN_NODE_CREATORS[29] { 
+const std::string MAIN_NODE_CREATORS[44] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
@@ -92,7 +107,22 @@ const std::string MAIN_NODE_CREATORS[29] {
     "js::jit::MCheckReturn::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
     "js::jit::MCheckThisReinit::New<js::jit::MDefinition*&>",
     "js::jit::MSuperFunction::New<js::jit::MDefinition*&>",
-    "js::jit::MBigIntPow::New<js::jit::MDefinition*&, js::jit::MDefinition*&>"
+    "js::jit::MBigIntPow::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
+    "js::jit::MAbs::New<js::jit::MDefinition*&, js::jit::MIRType>",
+    "js::jit::MMathFunction::New<js::jit::MDefinition*&, js::UnaryMathFunction&>",
+    "js::jit::MSqrt::New<js::jit::MDefinition*&, js::jit::MIRType>",
+    "js::jit::MCeil::New<js::jit::MDefinition*&>",
+    "js::jit::MFloor::New<js::jit::MDefinition*&>",
+    "js::jit::MRound::New<js::jit::MDefinition*&>",
+    "js::jit::MNewArray::MNewArray",
+    "js::jit::MToNumberInt32::New<js::jit::MDefinition*&, js::jit::IntConversionInputKind>",
+    "js::jit::MStoreElement::New<js::jit::MElements*&, js::jit::MConstant*&, js::jit::MDefinition*&, bool>",
+    "js::jit::MToFloat32::New<js::jit::MDefinition*&>",
+    "js::jit::MPhi::New",
+    "js::jit::MSlots::New<js::jit::MDefinition*&>",
+    "js::jit::MNearbyInt::New<js::jit::MDefinition*&, js::jit::MIRType, js::jit::RoundingMode>",
+    "js::jit::MNot::New<js::jit::MDefinition*&>",
+    "js::jit::MTest::New<js::jit::MDefinition*, js::jit::MBasicBlock*, js::jit::MBasicBlock*>"
 };
 
 const std::string NONIR_NODE_ALLOCATORS[2] = {
@@ -101,8 +131,8 @@ const std::string NONIR_NODE_ALLOCATORS[2] = {
 };
 
 const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 29;
-const int NODE_CREATORS_SIZE = 29;
+const int NODE_ALLOC_SIZE = 44;
+const int NODE_CREATORS_SIZE = 44;
 const int NONIR_NODE_ALLOC_SIZE = 2;
 
 // Main modeled IR constructor function.
@@ -137,7 +167,6 @@ ADDRINT get_address_spm();
 ADDRINT *get_opcode_spm(Node *node, UINT32 fnId);
 ADDRINT get_size_spm(ADDRINT address);
 ADDRINT *get_update_opcode_spm(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
-void    check_and_fix_opcode_spm();
 
 // Optimization functions.
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);

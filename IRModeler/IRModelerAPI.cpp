@@ -209,9 +209,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     }
 
     // DEBUG
-    //string fn = strTable.get(fnId);
-    //cout << "Function: " << fn << "; Node ID: " << dec << node->id << "; ";
-    //cout << "Node Opcode: " << hex << node->opcode << endl;
+    string fn = strTable.get(fnId);
+    cout << "Function: " << fn << "; Node ID: " << dec << node->id << "; ";
+    cout << "Node Opcode: " << hex << node->opcode << endl;
 
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
@@ -820,71 +820,6 @@ ADDRINT *get_update_opcode_spm(Node *node, ADDRINT location, ADDRINT value, ADDR
     }
 
     return opcode;
-}
-
-void check_and_fix_opcode() {
-
-    if (IRGraph->systemId == V8) {
-        // No action required yet.
-    }
-    else if (IRGraph->systemId == JSC) {
-        // No action required yet.
-    }
-    else if (IRGraph->systemId == SPM) {
-        check_and_fix_opcode_spm();
-    }
-    // DEBUG
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        Node *node = IRGraph->nodes[i];
-        if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
-            cout << "Node: " << hex << node->intAddress << endl;
-            map<ADDRINT,MRInst>::iterator it;
-            for (it = reads.begin(); it != reads.end(); ++it) {
-                MRInst read = it->second;
-                if (read.valueSize == SPM_OPCODE_SIZE) {
-                    cout << "   MR[" << hex << read.location << "]=" << read.value << "; ";
-                    for (int j = 0; j < read.regSize; j++) {
-                        cout << hex << read.srcRegs[j].value << ", ";
-                    }
-                    cout << endl;
-                }
-            }
-        }
-    }
-}
-
-void check_and_fix_opcode_spm() {
-
-    //
-    map<int, ADDRINT> opMissingNodeIds;
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        Node *node = IRGraph->nodes[i];
-        if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
-            opMissingNodeIds[i] = node->intAddress;
-        }
-    }
-
-    //
-    if (!opMissingNodeIds.empty()) {
-        //
-        map<ADDRINT,MRInst>::iterator it;
-        for (it = reads.begin(); it != reads.end(); ++it) {
-            MRInst read = it->second;
-            // Check only the value size is equal to the size of SpiderMonkey's opcode.
-            if (read.valueSize == SPM_OPCODE_SIZE) {
-                for (int i = 0; i < read.regSize; i++) {
-                    map<int, ADDRINT>::iterator it2;
-                    for (it2 = opMissingNodeIds.begin(); it2 != opMissingNodeIds.end(); ++it2) {
-                        if (read.srcRegs[i].value == it2->second) {
-                            Node *node = IRGraph->nodes[it2->first];
-                            node->opcode = read.value;
-                            node->opcodeAddress = read.location;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 // Functions for prints for debugging.
@@ -2149,8 +2084,6 @@ void write2Json() {
  * Output:
  **/
 void endFile() {
-    // Check and fix, if needed, missing IR node opcode.
-    //check_and_fix_opcode();
     // Write IR to a file in JSON.
     write2Json();
 }
