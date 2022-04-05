@@ -82,3 +82,15 @@
 - ```test_80.js```: Math tanh (```Math.tanh()```).
 - ```test_81.js```: Math trunc (```Math.trunc()```).
 - ```test_82.js```: Math imul (```Math.imul()```).
+- ```test_83.js```: Int 16 array from an ArrayBuffer (```Int16Array()```).
+- ```test_84.js```: Int 16 array from an iterable (```Int16Array()```).
+- ```test_85.js```: Int 32 array from length (```Int32Array()```).
+- ```test_86.js```: Int 32 array from array (```Int32Array()```).
+- ```test_87.js```: Int 32 array from another TypedArray (```Int32Array()```).
+- ```test_88.js```: Int 32 array from an ArrayBuffer (```Int32Array()```).
+- ```test_89.js```: Int 32 array from an iterable (```Int32Array()```).
+- ```test_90.js```: UInt 16 array from length (```Uint16Array()```).
+- ```test_91.js```: UInt 16 array from array (```Uint16Array()```).
+- ```test_92.js```: UInt 16 array from another TypedArray (```Uint16Array()```).
+- ```test_93.js```: UInt 16 array from an ArrayBuffer (```Uint16Array()```).
+- ```test_94.js```: UInt 16 array from an iterable (```Uint16Array()```).
