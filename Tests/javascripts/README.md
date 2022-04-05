@@ -94,3 +94,15 @@
 - ```test_92.js```: UInt 16 array from another TypedArray (```Uint16Array()```).
 - ```test_93.js```: UInt 16 array from an ArrayBuffer (```Uint16Array()```).
 - ```test_94.js```: UInt 16 array from an iterable (```Uint16Array()```).
+- ```test_95.js```: UInt 32 array from length (```Uint32Array()```).
+- ```test_96.js```: UInt 32 array from array (```Uint32Array()```).
+- ```test_97.js```: UInt 32 array from another TypedArray (```Uint32Array()```).
+- ```test_98.js```: UInt 32 array from an ArrayBuffer (```Uint32Array()```).
+- ```test_99.js```: UInt 32 array from an iterable (```Uint32Array()```).
+- ```test_100.js```: UInt 8 array from length (```Uint8Array()```).
+- ```test_101.js```: UInt 8 array from array (```Uint8Array()```).
+- ```test_102.js```: UInt 8 array from another TypedArray (```Uint8Array()```).
+- ```test_103.js```: UInt 8 array from an ArrayBuffer (```Uint8Array()```).
+- ```test_104.js```: UInt 8 array from an iterable (```Uint8Array()```).
+- ```test_105.js```: Global object isFinite (```isFinite()```).
+- ```test_106.js```: Global object isNaN (```isNaN()```).
