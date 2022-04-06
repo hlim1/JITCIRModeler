@@ -20,6 +20,7 @@
 #include <fstream>
 
 using std::cout;
+using std::cerr;
 using std::endl;
 using std::map;
 using std::string;
@@ -156,9 +157,14 @@ bool populate_regs = false;
 ADDRINT lastMemReadLoc = ADDRINT_INVALID;
 int targetSrcRegsKey = 0;
 int targetDesRegsKey = 0;
-
 bool is_former_range = false;
 
+/**
+ * Function: constructModeledIRNode
+ * Description: This function analyzes the collected memory/register reads and writes
+ * to construct the JIT compiler IR node model. Then, adds the IR node to the IR graph.
+ * Output: None.
+ **/
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
     // Keep a track of system ID in the IR, if not populated already.
@@ -180,14 +186,8 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
     // Get node size.
     node->size = get_size(node->blockHead, system_id);
-
-    if (node->size == ADDRINT_INVALID) {
-        string fn = strTable.get(fnId);
-        cout << "ERROR: Size Missing. Function Name: " << fn << ". ";
-        cout << "System ID: " << system_id << endl;
-        assert (node->size != ADDRINT_INVALID);
-        assert (node->size < MAX_NODE_SIZE);
-    }
+    assert (node->size != ADDRINT_INVALID);
+    assert (node->size < MAX_NODE_SIZE);
 
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
@@ -198,20 +198,15 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     opcode = get_opcode(node, system_id, fnId);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
-    // Since a CFG block node has no opcode, we want to check the validity
-    // of opcode value only for all non-CFG block nodes.
-    if (system_id != SPM) {
+    // Check the opcode existence only for those nodes' is_nonIR is set to false.
+    if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
         string fn = strTable.get(fnId);
-        cout << "ERROR: Opcode Missing. Function Name: " << fn << ". ";
-        cout << "System ID: " << system_id << endl;
-        assert (node->opcode != ADDRINT_INVALID);
-        assert (node->opcodeAddress != ADDRINT_INVALID);
+        cerr << "ERROR: Opcode is Missing!";
+        cerr << "Node ID: " << dec << node->id << ". ";
+        cerr << "Function Name: " << fn << ". ";
+        cerr << "System ID: " << dec << system_id << endl;
+        exit(1);
     }
-
-    // DEBUG
-    string fn = strTable.get(fnId);
-    cout << "Function: " << fn << "; Node ID: " << dec << node->id << "; ";
-    cout << "Node Opcode: " << hex << node->opcode << endl;
 
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
@@ -232,6 +227,11 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     is_former_range = false;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 
     ADDRINT address = ADDRINT_INVALID;
@@ -1795,9 +1795,9 @@ VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
 /**
  * Function: setupFile
  * Description: Opens and sets up any output files. Note, since this is an ASCII trace, it will setup 
- *  trace.out according to the Data Ops trace file format.
+ * trace.out according to the Data Ops trace file format.
  * Output: None
- */
+ **/
 void setupFile(UINT16 infoSelect) {
     traceFile = fopen("trace.out", "wb");
     dataFile = fopen("data.out", "w+b");
