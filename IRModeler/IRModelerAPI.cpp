@@ -236,34 +236,11 @@ ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 
     ADDRINT address = ADDRINT_INVALID;
 
-    if (system_id == V8) { 
-        address = get_address_v8();
-    }
-    else if (system_id == JSC) {
-        address = get_address_jsc();
-    }
-    else if (system_id == SPM) {
-        address = get_address_spm();
-    } 
+    address = uint8Toaddrint(currentRaxVal, currentRaxValSize);
 
     assert(address != ADDRINT_INVALID);
 
     return address;
-}
-
-ADDRINT get_address_v8() {
-
-    return uint8Toaddrint(currentRaxVal, currentRaxValSize);
-}
-
-ADDRINT get_address_jsc() {
-
-    return uint8Toaddrint(currentRaxVal, currentRaxValSize);
-}
-
-ADDRINT get_address_spm() {
-
-    return uint8Toaddrint(currentRaxVal, currentRaxValSize);
 }
 
 ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {

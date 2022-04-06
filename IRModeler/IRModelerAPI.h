@@ -152,18 +152,15 @@ void    check_and_fix_opcode();
 // To handle other system's opcode extraction, add function below and call from get_opcode(..).
 
 // Functions for V8 goes here.
-ADDRINT get_address_v8();
 ADDRINT *get_opcode_v8(Node *node);
 ADDRINT get_size_v8(ADDRINT address);
 ADDRINT get_node_block_head_v8(ADDRINT address);
 ADDRINT *get_update_opcode_v8(Node* node, ADDRINT value);
 // Functions for JSC goes here.
-ADDRINT get_address_jsc();
 ADDRINT *get_opcode_jsc(Node *node);
 ADDRINT get_size_jsc(ADDRINT address);
 ADDRINT *get_update_opcode_jsc(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 // Functions for SpiderMonkey(SPM) goes here.
-ADDRINT get_address_spm();
 ADDRINT *get_opcode_spm(Node *node, UINT32 fnId);
 ADDRINT get_size_spm(ADDRINT address);
 ADDRINT *get_update_opcode_spm(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
