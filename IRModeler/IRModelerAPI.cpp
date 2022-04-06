@@ -163,6 +163,9 @@ bool is_former_range = false;
  * Function: constructModeledIRNode
  * Description: This function analyzes the collected memory/register reads and writes
  * to construct the JIT compiler IR node model. Then, adds the IR node to the IR graph.
+ * Input:
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - system_id (UIN32): JIT compiler system ID.
  * Output: None.
  **/
 void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
@@ -228,9 +231,13 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_node_address
+ * Description: This function calls uint8Toaddrint function to retrieve the address of a node
+ * held in the RAX register after returning from the node allocation function.
+ * Input:
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - system_id (UINT32): JIT compiler system ID.
+ * Output: ADDRINT type address value.
  **/
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 
@@ -244,9 +251,14 @@ ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_opcode
+ * Description: This function calls appropriate function for each JIT compiler system
+ * to retrieve the opcode of currently forming IR node model.
+ * Input:
+ *  - node (Node*): Currently forming IR node model.
+ *  - system_id (UINT32): JIT compiler system ID.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: Pointer to opcode array.
  **/
 ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {
 
@@ -266,9 +278,13 @@ ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_opcode_v8
+ * Description: This function analyzes collected memory write information to
+ * retrieve the V8 IR node opcode and address where opcode is stored.
+ * Input:
+ *  - node (Node*): Currently forming IR node model.
+ * Output: Statically allocated opcode array, where index 0 holds opcode and
+ * index 1 holds address where opcode is stored within the node block range.
  **/
 ADDRINT *get_opcode_v8(Node *node) {
 
@@ -307,9 +323,13 @@ ADDRINT *get_opcode_v8(Node *node) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_opcode_jsc
+ * Description: This function analyzes collected memory write information to
+ * retrieve the JSC IR node opcode and address where opcode is stored.
+ * Input:
+ *  - node (Node*): Currently forming IR node model.
+ * Output: Statically allocated opcode array, where index 0 holds opcode and
+ * index 1 holds address where opcode is stored within the node block range.
  **/
 ADDRINT *get_opcode_jsc(Node *node) {
 
@@ -339,9 +359,14 @@ ADDRINT *get_opcode_jsc(Node *node) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_opcode_spm_
+ * Description: This function analyzes collected memory write information to
+ * retrieve the SPM IR node opcode and address where opcode is stored.
+ * Input:
+ *  - node (Node*): Currently forming IR node model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: Statically allocated opcode array, where index 0 holds opcode and
+ * index 1 holds address where opcode is stored within the node block range.
  **/
 ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
 
@@ -375,9 +400,13 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_node_block_head
+ * Description: This function returns the node block's head address, where
+ * head means the first memory location of a block.
+ * Inputs:
+ *  - address (ADDRINT): Address of a node.
+ *  - system_id (UINT32): JIT compiler system ID.
+ * Output: Address of node block's head.
  **/
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id) {
 
@@ -399,9 +428,13 @@ ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_node_block_head_v8
+ * Description: This function analyzes the memory writes observed and extracted from
+ * the instructions that belongs to node allocator function to identify the node block's
+ * head address.
+ * Input:
+ *  - address (ADDRINT): Address of a node.
+ * Output: Address of V8 node block's head.
  **/
 ADDRINT get_node_block_head_v8(ADDRINT address) {
 
@@ -421,9 +454,14 @@ ADDRINT get_node_block_head_v8(ADDRINT address) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_init_block_locs
+ * Description: This function analyzes the memory write information to extract the values
+ * written between the node's head and tail, where tail is the last memory location of
+ * node block.
+ * Input:
+ *  - node (Node*): Currently forming IR node model.
+ *  - system_id (UINT32): JIT compiler system ID.
+ * Output: None.
  **/
 void get_init_block_locs(Node *node, UINT32 system_id) {
 
@@ -453,7 +491,7 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                     write.location != node->intAddress &&   // write value is not node address
                     write.location != node->opcodeAddress   // write value is not node opcode address
             ) {
-                bool is_direct = isDirectAssignment(write.value);
+                bool is_direct = isMemoryWriteLoc(write.value);
                 if (is_direct) {
                     // Compute the distance between the block head and the written location,
                     // then write to node's offsets to track which locations are wrriten.
@@ -472,21 +510,26 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: isMemoryWriteLoc
+ * Description: This function compares the passed value (memory address) to the writes
+ * map, which keeps a track of information of all memory writes encountered. If the value
+ * exists in the writes as a key, then the value is a memory location where some value
+ * was written.
+ * Input:
+ *  - value (ADDRINT): Value to search from the writes map.
+ * Output: true if value exists, false otherwise.
  **/
-bool isDirectAssignment(ADDRINT value) {
+bool isMemoryWriteLoc(ADDRINT value) {
 
-    bool isDirectAssignment = true;
+    bool isMemoryWriteLoc = true;
 
     map<ADDRINT,MWInst>::iterator it;
     it = writes.find(value);
     if (it != writes.end()) {
-        isDirectAssignment = false;
+        isMemoryWriteLoc = false;
     }
 
-    return isDirectAssignment;
+    return isMemoryWriteLoc;
 }
 
 /**
@@ -1350,7 +1393,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
             else if (!is_node_addr) {
-                bool is_direct = isDirectAssignment(value);
+                bool is_direct = isMemoryWriteLoc(value);
                 // TODO: 'valueSize < 8' is to prevent considering the memory address is considered as
                 // a value with an assmption is that the address's size is 8. This is not a good approach
                 // so we need to update it with more appropriate way.

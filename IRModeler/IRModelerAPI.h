@@ -184,7 +184,7 @@ bool    fnInCreators(std::string fn);
 bool    fnInNonIRAllocs(std::string fn);
 int     compareValuetoIRNodes(ADDRINT value);
 int     getEdgeEdx(Node *node, ADDRINT address);
-bool    isDirectAssignment(ADDRINT value);
+bool    isMemoryWriteLoc(ADDRINT value);
 void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
 bool    isSameAccess(Node *node, FnInfo fnInfo);
 
