@@ -537,22 +537,6 @@ bool isMemoryWriteLoc(ADDRINT value) {
  * Description:
  * Output:
  **/
-bool elemInMap(ADDRINT elem, map<ADDRINT,ADDRINT> targetMap) {
-
-    bool is_exists = false;
-
-    if (targetMap.find(elem) != targetMap.end()) {
-        is_exists = true;
-    }
-
-    return is_exists;
-}
-
-/**
- * Function:
- * Description:
- * Output:
- **/
 bool checkRAXValue(UINT8 *value) {
 
     bool is_valid = true;

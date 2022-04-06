@@ -177,7 +177,6 @@ void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
 UINT8*  addrintTouint8(ADDRINT target, UINT32 size);
-bool    elemInMap(ADDRINT elem, std::map<ADDRINT,ADDRINT> targetMap);
 bool    fnInAllocs(std::string fn);
 bool    fnInFormers(std::string fn);
 bool    fnInCreators(std::string fn);
