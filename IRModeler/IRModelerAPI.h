@@ -190,9 +190,6 @@ bool    isSameAccess(Node *node, FnInfo fnInfo);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);
-void printNodes();
-void printNode(Node *node);
-void printMap(std::map<ADDRINT,ADDRINT> mymap);
 
 extern StringTable strTable;
 

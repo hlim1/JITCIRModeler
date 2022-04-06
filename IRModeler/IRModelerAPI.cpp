@@ -243,6 +243,11 @@ ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
     return address;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {
 
     static ADDRINT *opcode;
@@ -260,6 +265,11 @@ ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_opcode_v8(Node *node) {
 
     ADDRINT value = ADDRINT_INVALID;
@@ -296,6 +306,11 @@ ADDRINT *get_opcode_v8(Node *node) {
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_opcode_jsc(Node *node) {
 
     static ADDRINT opcode[2];
@@ -323,6 +338,11 @@ ADDRINT *get_opcode_jsc(Node *node) {
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
 
     static ADDRINT opcode[2];
@@ -354,6 +374,11 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id) {
 
     ADDRINT blockHead = ADDRINT_INVALID;
@@ -373,6 +398,11 @@ ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id) {
     return blockHead;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_node_block_head_v8(ADDRINT address) {
 
     ADDRINT regValue = ADDRINT_INVALID;
@@ -390,6 +420,11 @@ ADDRINT get_node_block_head_v8(ADDRINT address) {
 
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void get_init_block_locs(Node *node, UINT32 system_id) {
 
     int edgeNodeId = INT_INVALID;
@@ -436,6 +471,11 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool isDirectAssignment(ADDRINT value) {
 
     bool isDirectAssignment = true;
@@ -449,6 +489,11 @@ bool isDirectAssignment(ADDRINT value) {
     return isDirectAssignment;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool elemInMap(ADDRINT elem, map<ADDRINT,ADDRINT> targetMap) {
 
     bool is_exists = false;
@@ -460,6 +505,11 @@ bool elemInMap(ADDRINT elem, map<ADDRINT,ADDRINT> targetMap) {
     return is_exists;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool checkRAXValue(UINT8 *value) {
 
     bool is_valid = true;
@@ -471,6 +521,11 @@ bool checkRAXValue(UINT8 *value) {
     return is_valid;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size) {
     
     assert (size > 0);
@@ -483,6 +538,11 @@ ADDRINT uint8Toaddrint(UINT8* target, UINT32 size) {
     return to;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 UINT8* addrintTouint8(ADDRINT target, UINT32 size) {
     UINT8 *to = new UINT8();
     memcpy(to, &target, size);
@@ -490,6 +550,11 @@ UINT8* addrintTouint8(ADDRINT target, UINT32 size) {
     return to;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool compareUINT8(UINT8 *target, UINT8 *to, UINT32 size) {
 
     bool is_equal = true;
@@ -503,6 +568,11 @@ bool compareUINT8(UINT8 *target, UINT8 *to, UINT32 size) {
     return is_equal;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool fnInAllocs(string fn) {
 
     bool is_exists = false;
@@ -516,6 +586,11 @@ bool fnInAllocs(string fn) {
     return is_exists;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool fnInFormers(string fn) {
 
     bool is_exists = false;
@@ -529,6 +604,11 @@ bool fnInFormers(string fn) {
     return is_exists;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool fnInCreators(string fn) {
 
     bool is_exists = false;
@@ -542,6 +622,11 @@ bool fnInCreators(string fn) {
     return is_exists;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool fnInNonIRAllocs(string fn) {
 
     bool is_exists = false;
@@ -555,6 +640,11 @@ bool fnInNonIRAllocs(string fn) {
     return is_exists;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 int compareValuetoIRNodes(ADDRINT value) {
     int node_id = INT_INVALID;
 
@@ -568,6 +658,11 @@ int compareValuetoIRNodes(ADDRINT value) {
     return node_id;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_size(ADDRINT address, UINT32 system_id) {
 
     ADDRINT size = ADDRINT_INVALID;
@@ -587,6 +682,11 @@ ADDRINT get_size(ADDRINT address, UINT32 system_id) {
     return size;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_size_v8(ADDRINT address) {
 
     ADDRINT size = ADDRINT_INVALID;
@@ -617,6 +717,11 @@ ADDRINT get_size_v8(ADDRINT address) {
     return size;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_size_jsc(ADDRINT address) {
 
     ADDRINT size = ADDRINT_INVALID;
@@ -647,6 +752,11 @@ ADDRINT get_size_jsc(ADDRINT address) {
     return size;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT get_size_spm(ADDRINT address) {
 
     ADDRINT size = ADDRINT_INVALID;
@@ -711,6 +821,11 @@ void fixCopyValue(UINT8 *buggy, UINT8 *fixed, UINT32 size) {
     fixed[fix_idx+2] = 0x00;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 int getEdgeIdx(Node *node, ADDRINT address) {
 
     int edge_idx = INT_INVALID;
@@ -725,6 +840,11 @@ int getEdgeIdx(Node *node, ADDRINT address) {
     return edge_idx;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id) {
 
     static ADDRINT *opcode;
@@ -742,6 +862,11 @@ ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_update_opcode_v8(Node *node, ADDRINT value) {
 
     static ADDRINT opcode[2];
@@ -769,6 +894,11 @@ ADDRINT *get_update_opcode_v8(Node *node, ADDRINT value) {
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_update_opcode_jsc(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize) {
 
     static ADDRINT opcode[2];
@@ -784,6 +914,11 @@ ADDRINT *get_update_opcode_jsc(Node *node, ADDRINT location, ADDRINT value, ADDR
     return opcode;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 ADDRINT *get_update_opcode_spm(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize) {
 
     static ADDRINT opcode[2];
@@ -801,6 +936,11 @@ ADDRINT *get_update_opcode_spm(Node *node, ADDRINT location, ADDRINT value, ADDR
 
 // Functions for prints for debugging.
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void printUINT8(UINT8* arr, UINT32 size) {
 
     assert (size > 0);
@@ -809,66 +949,6 @@ void printUINT8(UINT8* arr, UINT32 size) {
         printf("%02x", arr[i]);
     }
     printf("%02x\n", arr[0]);
-}
-
-void printNodes() {
-
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        printNode(IRGraph->nodes[i]);
-    }
-}
-
-void printNode(Node *node) {
-
-    cout << "ID: " << dec << node->id << "; ";
-    cout << "Liveness: " << node->alive << "; ";
-    cout << "Address: " << hex << node->intAddress << " (Block address: ";
-    cout << node->blockHead << ", " << node->blockTail << "); ";
-    cout << "Opcode: " << node->opcode << "; ";
-    cout << "Size: " << hex << node->size << endl;
-    cout << "Edges (Edge addr. -> Node ID):" << endl;
-    for (int i = 0; i < node->numberOfEdges; i++) {
-        cout << hex << node->edgeAddrs[i] << " -> ";
-        if (node->edgeNodes[i] != NULL) {
-            cout << dec << node->edgeNodes[i]->id << endl;
-        }
-        else {
-            cout << dec << INT_INVALID << endl;
-        }
-    }
-    cout << "Edge Add Optimization (fnOrderId: added node id):" << endl;
-    map<int, int>::iterator it1;
-    for (it1 = node->fnOrder2addNodeId.begin(); it1 != node->fnOrder2addNodeId.end(); ++it1) {
-        cout << dec << it1->first << ": " << it1->second << endl;
-    }
-    cout << "Written values (Distance from block head -> value):" << endl;
-    for (int i = 0; i < node->numberOfLocs; i++) {
-        cout << "+" << dec << node->offsets[i] << " -> ";
-        if (node->valuesInLocs[i] != ADDRINT_INVALID) {
-            cout << hex << node->valuesInLocs[i] << endl;
-        }
-        else {
-            cout << hex << ADDRINT_INVALID << endl;
-        }
-    }
-    cout << "Direct values optimization information (fnOrderId: (offset: value from -> value to)):" << endl;
-    map<int, DirectValOpt>::iterator it;
-    for (it = node->fnOrder2dirValOpt.begin(); it != node->fnOrder2dirValOpt.end(); ++it) {
-        cout << dec << it->first << ": (" << (it->second).offset << ": ";
-        cout << hex << (it->second).valFrom << " -> " << (it->second).valTo << ")" << endl; 
-    }
-    cout << "Function access information (accessOrder: fnId, accessType)" << endl;
-    map<int, FnInfo>::iterator it2;
-    for (it2 = node->fnInfo.begin(); it2 != node->fnInfo.end(); ++it2) {
-        cout << dec << it2->first << ": " << (it2->second).fnId << ", " << (it2->second).accessType << endl;
-    }
-    cout << "--" << endl;
-}
-
-void printMap(map<ADDRINT,ADDRINT> mymap) {
-    for (map<ADDRINT,ADDRINT>::iterator it = mymap.begin(); it != mymap.end(); ++it) {
-        cout << hex << it->first << ", " << it->second << endl;
-    }
 }
 
 // =============================================================
@@ -980,6 +1060,11 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
     PIN_MutexUnlock(&dataLock);
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void check2MemRead(ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId) {
     checkMemRead(readAddr1, readSize, fnId);
     checkMemRead(readAddr2, readSize, fnId);
@@ -1090,6 +1175,11 @@ bool analyzeRecords(
     return labeled;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode) {
     
     ThreadData &data = tls[tid];
@@ -1137,6 +1227,11 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id) {
 
     ThreadData &data = tls[tid];
@@ -1194,6 +1289,11 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id) {
 
     // Check if the current memory location belongs to any one of existing node.
@@ -1265,6 +1365,11 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 
     // Retrieve the function name from the table.
@@ -1289,6 +1394,11 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 bool isSameAccess(Node *node, FnInfo fnInfo) {
 
     bool is_same = false;
@@ -1313,6 +1423,11 @@ bool isSameAccess(Node *node, FnInfo fnInfo) {
     return is_same;
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
 
     Node *target = node->edgeNodes[edge_idx];
@@ -1333,6 +1448,11 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
 
     assert(value_id < IRGraph->lastNodeId);
@@ -1358,6 +1478,11 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
     updateLogInfo(node, fnId, REPLACE);
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
 
     assert(value_id < IRGraph->lastNodeId);
@@ -1374,6 +1499,11 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
     updateLogInfo(node, fnId, ADDITION);
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void nodeDestroy(Node *node, UINT32 fnId) {
 
     // Simply set node->alive to false to indicate the node's been destroyed.
@@ -1382,6 +1512,11 @@ void nodeDestroy(Node *node, UINT32 fnId) {
     updateLogInfo(node, fnId, KILL);
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) {
 
     // Compute the offset first.
@@ -1428,6 +1563,11 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
     }
 }
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void opcodeUpdate(
         Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, 
         UINT32 system_id, UINT32 fnId) 
@@ -1860,6 +2000,11 @@ void setupFile(UINT16 infoSelect) {
 
 // ===========================================================
 
+/**
+ * Function:
+ * Description:
+ * Output:
+ **/
 void write2Json() {
     ofstream jsonFile;
     jsonFile.open("ir.json");
