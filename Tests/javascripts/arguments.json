@@ -1,5 +1,5 @@
 {
     "executable-with-args": [],
-    "test-directory": "",
-    "language-ext": ""
+    "test-directory": ".",
+    "language-ext": ".js"
 }
