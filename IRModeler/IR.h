@@ -43,7 +43,7 @@ struct ReplacedInfo {
 
 struct Node {
     Node() : 
-        id(-1), alive(true), opcodeId(0), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
+        id(-1), alive(true), opcode(-1), opcodeAddress(-1), opcodeId(0), is_nonIR(false), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -52,6 +52,7 @@ struct Node {
     ADDRINT opcode;                        // node's opcode.
     ADDRINT opcodeAddress;                 // tracks opcode address.
     int     opcodeId;                      // tracks opcode Id. The initial opcode ID = 0.
+    bool    is_nonIR;                      // tracks whether the current node is a IR node or not.
     // Structure information.
     UINT32  size;                          // size of a node.
     Node    *edgeNodes[MAX_NODES];         // list of nodes connected to this node.
@@ -60,8 +61,8 @@ struct Node {
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
     // Metadata information.
-    ADDRINT offsets[MAX_NODE_SIZE];             // tracks occupied memory locations between the block head & tail.
-    ADDRINT valuesInLocs[MAX_NODE_SIZE];        // tracks values written to memory locations.
+    ADDRINT offsets[MAX_NODE_SIZE];        // tracks occupied memory locations between the block head & tail.
+    ADDRINT valuesInLocs[MAX_NODE_SIZE];   // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
     std::map<int, int> fnOrder2addNodeId;           // track the function order id to the id of added node.
@@ -75,7 +76,7 @@ struct Node {
 };
 
 struct IR {
-    IR() : id(-1), lastNodeId(0), fnOrderId(0) {}
+    IR() : id(-1), lastNodeId(0), fnOrderId(0), systemId(-1) {}
 
     int         id;                             // ir graph id.
     Node        *nodes[MAX_NODES];              // array holding ptrs to node objects.
@@ -83,6 +84,7 @@ struct IR {
     int         lastNodeId;                     // id of a last node in the array.
     int         fnOrderId;                      // id indicating the order of function access.
     std::map<UINT32, std::string> fnId2Name;    // map to hold function id to name for look up.
+    UINT32      systemId;                       // JIT compiler system ID.
 };
 
 #endif
