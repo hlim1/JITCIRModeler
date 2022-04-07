@@ -162,7 +162,7 @@ bool is_former_range = false;
 /**
  * Function: constructModeledIRNode
  * Description: This function analyzes the collected memory/register reads and writes
- * to construct the JIT compiler IR node model. Then, adds the IR node to the IR graph.
+ *  to construct the JIT compiler IR node model. Then, adds the IR node to the IR graph.
  * Input:
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  *  - system_id (UIN32): JIT compiler system ID.
@@ -233,7 +233,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 /**
  * Function: get_node_address
  * Description: This function calls uint8Toaddrint function to retrieve the address of a node
- * held in the RAX register after returning from the node allocation function.
+ *  held in the RAX register after returning from the node allocation function.
  * Input:
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  *  - system_id (UINT32): JIT compiler system ID.
@@ -253,7 +253,7 @@ ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 /**
  * Function: get_opcode
  * Description: This function calls appropriate function for each JIT compiler system
- * to retrieve the opcode of currently forming IR node model.
+ *  to retrieve the opcode of currently forming IR node model.
  * Input:
  *  - node (Node*): Currently forming IR node model.
  *  - system_id (UINT32): JIT compiler system ID.
@@ -280,7 +280,7 @@ ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId) {
 /**
  * Function: get_opcode_v8
  * Description: This function analyzes collected memory write information to
- * retrieve the V8 IR node opcode and address where opcode is stored.
+ *  retrieve the V8 IR node opcode and address where opcode is stored.
  * Input:
  *  - node (Node*): Currently forming IR node model.
  * Output: Statically allocated opcode array, where index 0 holds opcode and
@@ -325,7 +325,7 @@ ADDRINT *get_opcode_v8(Node *node) {
 /**
  * Function: get_opcode_jsc
  * Description: This function analyzes collected memory write information to
- * retrieve the JSC IR node opcode and address where opcode is stored.
+ *  retrieve the JSC IR node opcode and address where opcode is stored.
  * Input:
  *  - node (Node*): Currently forming IR node model.
  * Output: Statically allocated opcode array, where index 0 holds opcode and
@@ -361,7 +361,7 @@ ADDRINT *get_opcode_jsc(Node *node) {
 /**
  * Function: get_opcode_spm_
  * Description: This function analyzes collected memory write information to
- * retrieve the SPM IR node opcode and address where opcode is stored.
+ *  retrieve the SPM IR node opcode and address where opcode is stored.
  * Input:
  *  - node (Node*): Currently forming IR node model.
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
@@ -402,7 +402,7 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
 /**
  * Function: get_node_block_head
  * Description: This function returns the node block's head address, where
- * head means the first memory location of a block.
+ *  head means the first memory location of a block.
  * Inputs:
  *  - address (ADDRINT): Address of a node.
  *  - system_id (UINT32): JIT compiler system ID.
@@ -430,8 +430,8 @@ ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id) {
 /**
  * Function: get_node_block_head_v8
  * Description: This function analyzes the memory writes observed and extracted from
- * the instructions that belongs to node allocator function to identify the node block's
- * head address.
+ *  the instructions that belongs to node allocator function to identify the node block's
+ *  head address.
  * Input:
  *  - address (ADDRINT): Address of a node.
  * Output: Address of V8 node block's head.
@@ -456,8 +456,8 @@ ADDRINT get_node_block_head_v8(ADDRINT address) {
 /**
  * Function: get_init_block_locs
  * Description: This function analyzes the memory write information to extract the values
- * written between the node's head and tail, where tail is the last memory location of
- * node block.
+ *  written between the node's head and tail, where tail is the last memory location of
+ *  node block.
  * Input:
  *  - node (Node*): Currently forming IR node model.
  *  - system_id (UINT32): JIT compiler system ID.
@@ -512,9 +512,9 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
 /**
  * Function: isMemoryWriteLoc
  * Description: This function compares the passed value (memory address) to the writes
- * map, which keeps a track of information of all memory writes encountered. If the value
- * exists in the writes as a key, then the value is a memory location where some value
- * was written.
+ *  map, which keeps a track of information of all memory writes encountered. If the value
+ *  exists in the writes as a key, then the value is a memory location where some value
+ *  was written.
  * Input:
  *  - value (ADDRINT): Value to search from the writes map.
  * Output: true if value exists, false otherwise.
@@ -533,9 +533,14 @@ bool isMemoryWriteLoc(ADDRINT value) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: checkRAXValue
+ * Description: This function checks the format of RAX value.
+ *  This function is needed because the Pin Tool (for some unknown reason)
+ *  messes up the byte location,
+ *  e.g., Correct format: 00007f25103b2528; Incorrect format: 007f25103b252800.
+ * Input:
+ *  - value (UINT32*): Value to check the format.
+ * Output: true if the value format is correct, false otherwise.
  **/
 bool checkRAXValue(UINT8 *value) {
 
@@ -549,9 +554,12 @@ bool checkRAXValue(UINT8 *value) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: uint8Toaddrint
+ * Description: This function converts value that is in UINT32 type to ADDRINT type.
+ * Input:
+ *  - target (UINT8*): Target value to convert to ADDRINT type.
+ *  - size (UINT32): Size of the target value.
+ * Output: ADDRINT type converted value.
  **/
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size) {
     
@@ -566,9 +574,12 @@ ADDRINT uint8Toaddrint(UINT8* target, UINT32 size) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: addrintTouint8
+ * Description: This function converts value that is in ADDRINT type to UINT32 type.
+ * Input:
+ *  - target (ADDRINT): Target value to convert to UINT8 type.
+ *  - size (UINT32): Size of the target value.
+ * Output: UINT32 type converted value.
  **/
 UINT8* addrintTouint8(ADDRINT target, UINT32 size) {
     UINT8 *to = new UINT8();
@@ -578,9 +589,13 @@ UINT8* addrintTouint8(ADDRINT target, UINT32 size) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: compareUINT8
+ * Description: This function compares two UINT8 type values.
+ * Input:
+ *  - target (UINT8*): Target value to compare.
+ *  - to (UINT8*): Value to compare Target with.
+ *  - size (UINT32): Size of both Target and To (Both must have equal size).
+ * Output: true if two are equal, false otherwise.
  **/
 bool compareUINT8(UINT8 *target, UINT8 *to, UINT32 size) {
 
@@ -596,9 +611,12 @@ bool compareUINT8(UINT8 *target, UINT8 *to, UINT32 size) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: fnInAllocs
+ * Description: This function checks whether the passed function name is a node
+ *  block allocator function or not.
+ * Input:
+ *  - fn (string): Function name string.
+ * Output: true if the function is a node block allocator function, false otherwise.
  **/
 bool fnInAllocs(string fn) {
 
@@ -614,9 +632,12 @@ bool fnInAllocs(string fn) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: fnInFormers
+ * Description: This function checks whether the passed function name is a node
+ *  former function or not.
+ * Input:
+ *  - fn (string): Function name string.
+ * Output: true if the function is a node block former function, false otherwise.
  **/
 bool fnInFormers(string fn) {
 
@@ -632,9 +653,12 @@ bool fnInFormers(string fn) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: fnInCreators
+ * Description: This function checks whether the passed function name is a node
+ *  creator function or not.
+ * Input:
+ *  - fn (string): Function name string.
+ * Output: true if the function is a node creator function, false otherwise.
  **/
 bool fnInCreators(string fn) {
 
@@ -650,9 +674,12 @@ bool fnInCreators(string fn) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: fnInNonIRAllocs
+ * Description: This function checks whether the passed function name is a non-IR
+ *  object allocator or not.
+ * Input:
+ *  - fn (string): Function name string.
+ * Output: true if the function is a non-IR object allocator, flase otherwise.
  **/
 bool fnInNonIRAllocs(string fn) {
 
@@ -668,11 +695,12 @@ bool fnInNonIRAllocs(string fn) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: compareValuetoIRNodes
+ * Description: This function compare the passed value to node addresses.
+ * Output: IR node ID, if value is an IR node address. INT_INVALID value otherwise.
  **/
 int compareValuetoIRNodes(ADDRINT value) {
+
     int node_id = INT_INVALID;
 
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
@@ -686,9 +714,12 @@ int compareValuetoIRNodes(ADDRINT value) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_size
+ * Description: This function calls appropriate function to get node block size.
+ * Input:
+ *  - address (ADDRINT): Address of a node to get the block size.
+ *  - system_id (UINT32): JIT compiler system ID.
+ * Output: Size of node block size.
  **/
 ADDRINT get_size(ADDRINT address, UINT32 system_id) {
 
@@ -710,9 +741,12 @@ ADDRINT get_size(ADDRINT address, UINT32 system_id) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_size_v8
+ * Description: This function analyzes register reads collected from the ndoe allocator
+ *  function instructions to get node block size. Only for V8.
+ * Input:
+ *  - address (ADDRINT): Address of a node to get the block size.
+ * Output: Size of node block size.
  **/
 ADDRINT get_size_v8(ADDRINT address) {
 
@@ -745,9 +779,12 @@ ADDRINT get_size_v8(ADDRINT address) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_size_jsc
+ * Description: This function analyzes register reads collected from the ndoe allocator
+ *  function instructions to get node block size. Only for JSC.
+ * Input:
+ *  - address (ADDRINT): Address of a node to get the block size.
+ * Output: Size of node block size.
  **/
 ADDRINT get_size_jsc(ADDRINT address) {
 
@@ -780,9 +817,12 @@ ADDRINT get_size_jsc(ADDRINT address) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_size_jsc
+ * Description: This function analyzes register reads collected from the ndoe allocator
+ *  function instructions to get node block size. Only for SPM.
+ * Input:
+ *  - address (ADDRINT): Address of a node to get the block size.
+ * Output: Size of node block size.
  **/
 ADDRINT get_size_spm(ADDRINT address) {
 
@@ -804,18 +844,23 @@ ADDRINT get_size_spm(ADDRINT address) {
             break;
         }
     }
-    //assert (size != ADDRINT_INVALID);
+    assert (size != ADDRINT_INVALID);
 
     return size;
 }
 
 /**
- *  Function: checkCopiedValue
- *  Description: Check a value copied by PIN_SafeCopy. If the copied value has
+ * Function: checkCopiedValue
+ * Description: Check a value copied by PIN_SafeCopy. If the copied value has
  *  an incorrect format, e.g., 0040032c3bef7f00, where the first byte of '00' is
  *  moved to the end, return false. Otherwise, true.
+ * Input:
+ *  - value (UINT8*): Value to check the format.
+ *  - size (UINT32): Size of value.
+ * Output: true if the format is correct, false otherwise.
  **/
 bool checkCopiedValue(UINT8 *value, UINT32 size) {
+
     bool is_correct = true;
 
     if (size == MEMSIZE) {
@@ -830,7 +875,12 @@ bool checkCopiedValue(UINT8 *value, UINT32 size) {
 /**
  * Function: fixCopyValue
  * Description: Fix the value to the correct format if checkCopiedValue returned false
- * on the input value, e.g., fix 0040032c3bef7f00 to 40032c3bef7f0000.
+ *  on the input value, e.g., fix 0040032c3bef7f00 to 40032c3bef7f0000.
+ * Input:
+ *  - buggy (UINT8*): Buggy format value to fix.
+ *  - fixed (UINT8*): Fixed value.
+ *  - size *UINT32): Size of value.
+ * Output: None.
 */
 void fixCopyValue(UINT8 *buggy, UINT8 *fixed, UINT32 size) {
 
@@ -849,9 +899,13 @@ void fixCopyValue(UINT8 *buggy, UINT8 *fixed, UINT32 size) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: getEdgeIdx
+ * Description: This function returns the index of node's edge where the edge
+ *  node address is stored.
+ * Input:
+ *  - node (Node*): The node, which holds the edge.
+ *  - Address (ADDRINT): Address of a node, which it's connected to the edge.
+ * Output: Edge index, if exists. INT_INVALID otherwise.
  **/
 int getEdgeIdx(Node *node, ADDRINT address) {
 
@@ -868,9 +922,16 @@ int getEdgeIdx(Node *node, ADDRINT address) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_updated_opcode
+ * Description: This function calls appropriate system-specific function to update node's opcode
+ *  if optimizer performs optimization.
+ * Input:
+ *  - node (Node*): Node to update opcode.
+ *  - location (ADDRINT): Location address between the node block range, where opcode is stored.
+ *  - value (ADDRINT): value, which is expected to be opcode.
+ *  - valueSize (ADDRINT): Size of value.
+ *  - system_id (UINT32): JIT compiler system ID.
+ * Output: Pointer to opcode array.
  **/
 ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id) {
 
@@ -890,9 +951,14 @@ ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_update_opcode_v8
+ * Description: This function checks whether the value is an opcode or node.
+ *  Then, updates node's opcode, if the value is opcode.
+ * Input:
+ *  - node (Node*): Node to update opcode.
+ *  - value (ADDRINT): value, which is expected to be opcode.
+ * Output: Statically allocated opcode array, where index 0 holds opcode and
+ * index 1 holds address where opcode is stored within the node block range.
  **/
 ADDRINT *get_update_opcode_v8(Node *node, ADDRINT value) {
 
@@ -922,9 +988,16 @@ ADDRINT *get_update_opcode_v8(Node *node, ADDRINT value) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_update_opcode_jsc
+ * Description: This function checks whether the value is an opcode or node.
+ *  Then, updates node's opcode, if the value is opcode.
+ * Input:
+ *  - node (Node*): Node to update opcode.
+ *  - location (ADDRINT): Location address between the node block range, where opcode is stored.
+ *  - value (ADDRINT): value, which is expected to be opcode.
+ *  - valueSize (ADDRINT): Size of value.
+ * Output: Statically allocated opcode array, where index 0 holds opcode and
+ * index 1 holds address where opcode is stored within the node block range.
  **/
 ADDRINT *get_update_opcode_jsc(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize) {
 
@@ -942,9 +1015,16 @@ ADDRINT *get_update_opcode_jsc(Node *node, ADDRINT location, ADDRINT value, ADDR
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: get_update_opcode_spm
+ * Description: This function checks whether the value is an opcode or node.
+ *  Then, updates node's opcode, if the value is opcode.
+ * Input:
+ *  - node (Node*): Node to update opcode.
+ *  - location (ADDRINT): Location address between the node block range, where opcode is stored.
+ *  - value (ADDRINT): value, which is expected to be opcode.
+ *  - valueSize (ADDRINT): Size of value.
+ * Output: Statically allocated opcode array, where index 0 holds opcode and
+ * index 1 holds address where opcode is stored within the node block range.
  **/
 ADDRINT *get_update_opcode_spm(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize) {
 
@@ -964,9 +1044,12 @@ ADDRINT *get_update_opcode_spm(Node *node, ADDRINT location, ADDRINT value, ADDR
 // Functions for prints for debugging.
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: printUINT8
+ * Description: This function prints UINT8 type value in format.
+ * Input:
+ *  - arr (UINT8*): UINT8 type value array.
+ *  - size (UINT32): Size of value.
+ * Output: None.
  **/
 void printUINT8(UINT8* arr, UINT32 size) {
 
@@ -983,6 +1066,12 @@ void printUINT8(UINT8* arr, UINT32 size) {
 /**
  * Function: recordSrcRegs
  * Description: Records information on source registers of an instruction.
+ * Input:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - ctx (CONTEXT*): A structure that keeps architectural state of the processor.
+ *  - srcRegs (RegVector*): Source register information holder.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - instOpcode (UINT32): Instruction opcode.
  * Output: None
  **/
 void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
@@ -1022,7 +1111,11 @@ void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
 /**
  * Function: recordDestRegs
  * Description: Records the instruction's destination registers and flags in thread local storage so
- * that they can be printed after the instruction executes.
+ *  that they can be printed after the instruction executes.
+ * Input:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - destRegs (RegVector*): Destination register information vector.
+ *  - destFalgs (UINT32): Destination register flag.
  * Output: None
  **/
 void PIN_FAST_ANALYSIS_CALL recordDestRegs(THREADID tid, const RegVector *destRegs, UINT32 destFlags) {
@@ -1039,6 +1132,11 @@ void PIN_FAST_ANALYSIS_CALL recordDestRegs(THREADID tid, const RegVector *destRe
  *  It also checks to see if we are currently looking at a special memory region that gets updated by
  *  the kernel. In this case, we won't know if we saw the current value before so we also must always
  *  print out those values.
+ * Input:
+ *  - readAddr (ADDRINT): Memory read location address.
+ *  - readSize (UINT32): Size of readAddr.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None
  **/
 void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
 
@@ -1088,9 +1186,14 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: check2MemRead
+ * Description: This function simply calls checkMemRead twice.
+ * Input:
+ *  - readAddr1 (ADDRINT): Address of first memory read location address.
+ *  - readAddr2 (ADDRINT): Address of second memory read location address.
+ *  - readSize (UINT32): Size of memory reads.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
 void check2MemRead(ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId) {
     checkMemRead(readAddr1, readSize, fnId);
@@ -1103,6 +1206,10 @@ void check2MemRead(ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32
  *  since we need this information after the instruction executes (so we can get the new values), we need
  *  to record the address and size of the memory write in thread local storage so we can get the information
  *  later.
+ * Input:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - addr (ADDRINT): Memory write location address.
+ *  - size (UINT32): Size of memory write value.
  * Output: None
  **/
 void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
@@ -1120,7 +1227,15 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
 /**
  * Function: analyzeRecords
  * Description: This function analyzes all the recorded information for the instruction.
- * Output: None
+ * Input:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - ctx (CONTEXT*): A structure that keeps architectural state of the processor.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - opcode (UINT32): Instruction opcode.
+ *  - is_create(bool): Flag indicating whether the current instruction belongs node creator
+ *  function or not.
+ *  - system_id (UINT32): JIT compiler system ID.
+ * Output: true if labeled, false otherwise.
  **/
 bool analyzeRecords(
         THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode,
@@ -1203,9 +1318,14 @@ bool analyzeRecords(
 }
 
 /**
- * Function:
- * Description:
- * Output:
+ * Function: analyzeRegWrites
+ * Description: This function analyzes register writes of the current instruction.
+ * Input:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - ctx (CONTEXT*): A structure that keeps architectural state of the processor.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - opcode (UINT32): Instruction opcode.
+ * Output: None.
  **/
 void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode) {
     
@@ -1257,6 +1377,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id) {
@@ -1319,6 +1440,7 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id) {
@@ -1395,6 +1517,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
@@ -1424,6 +1547,7 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 bool isSameAccess(Node *node, FnInfo fnInfo) {
@@ -1453,6 +1577,7 @@ bool isSameAccess(Node *node, FnInfo fnInfo) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
@@ -1478,6 +1603,7 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
@@ -1508,6 +1634,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
@@ -1529,6 +1656,7 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void nodeDestroy(Node *node, UINT32 fnId) {
@@ -1542,6 +1670,7 @@ void nodeDestroy(Node *node, UINT32 fnId) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) {
@@ -1593,6 +1722,7 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void opcodeUpdate(
@@ -1623,6 +1753,7 @@ void opcodeUpdate(
  * Description: Get a buffer for the file that is guaranteed to fit the given size. Must provide the file's
  *  buffer and the current position in that buffer. 
  * Side Effects: Writes to file if there is not enough space in buffer
+ * Input:
  * Output: the position in the buffer that it is safe to write to
  **/
 UINT8 *getFileBuf(UINT32 size, UINT8 *fileBuf, UINT8 *curFilePos, FILE *file) {
@@ -1638,6 +1769,7 @@ UINT8 *getFileBuf(UINT32 size, UINT8 *fileBuf, UINT8 *curFilePos, FILE *file) {
 /**
  * Function: startTrace
  * Description: Function used to mark when to start tracing.
+ * Input:
  * Output: None
  **/
 void startTrace() {
@@ -1666,6 +1798,7 @@ UINT8 *printDataLabel(UINT8 *pos, UINT64 eventId) {
  *  address, value and size. Additionally, if sizePos is provided, it set the sizePos's value to
  *  the location of size in the buffer.
  * Assumptions: There is enough space in the buffer
+ * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printMemData(UINT8 *pos, UINT16 size, ADDRINT addr, UINT8 *val, UINT8 **sizePos) {
@@ -1694,6 +1827,7 @@ UINT8 *printMemData(UINT8 *pos, UINT16 size, ADDRINT addr, UINT8 *val, UINT8 **s
  * Function: printExceptionEvent
  * Description: Writes an exception event into the location specified by pos
  * Assumptions: There is enough space in the buffer
+ * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printExceptionEvent(UINT8 *pos, ExceptionType eType, INT32 info, THREADID tid, ADDRINT addr) {
@@ -1727,6 +1861,7 @@ UINT8 *printExceptionEvent(UINT8 *pos, ExceptionType eType, INT32 info, THREADID
  *  It also fills in valBuf with the value of the register
  * Assumptions: There is enough space in the buffer, valBuf is at least 64 bytes
  * Side Effects: Fills in valBuf with register value
+ * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printDataReg(THREADID tid, UINT8 *pos, LynxReg lReg, const CONTEXT *ctxt, UINT8 *valBuf) {
@@ -1753,6 +1888,7 @@ UINT8 *printDataReg(THREADID tid, UINT8 *pos, LynxReg lReg, const CONTEXT *ctxt,
 /**
  * Function: checkInitializedStatus
  * Description: Checks to see if we have printed out the initial status of a thread.
+ * Input:
  * Output: True if initialized, false otherwise
  **/
 bool checkInitializedStatus(THREADID tid) {
@@ -1762,6 +1898,7 @@ bool checkInitializedStatus(THREADID tid) {
 /**
  * Function: initThread
  * Description: Records the initial state of a thread in the trace
+ * Input:
  * Output: None
  **/
 void initThread(THREADID tid, const CONTEXT *ctx) {
@@ -1776,6 +1913,7 @@ void initThread(THREADID tid, const CONTEXT *ctx) {
 /**
  * Function: initIns
  * Description: Initializes the thread local storage for a new instruction. 
+ * Input:
  * Output: None
  **/
 void PIN_FAST_ANALYSIS_CALL initIns(THREADID tid) {
@@ -1813,6 +1951,7 @@ void PIN_FAST_ANALYSIS_CALL recordSrcId(THREADID tid, UINT32 srcId) {
  * Function: contextChange
  * Description: Records information in a trace if an exception occurred, resulting in a context change. 
  *  Note, this is the only place that event ids are adjusted due to an exception event.
+ * Input:
  * Output: None
  **/
 void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fromCtx, CONTEXT *toCtx, INT32 info, void *v) {
@@ -1846,6 +1985,7 @@ void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fr
 /**
  * Function: recordRegState
  * Description: Records the register state for the current architecture in data file.
+ * Input:
  * Output: None
  **/
 void recordRegState(THREADID tid, const CONTEXT *ctxt) {
@@ -1915,6 +2055,7 @@ void recordRegState(THREADID tid, const CONTEXT *ctxt) {
  * Description: Call this when another thread starts so we can accurately track the number of threads 
  *  the program has. We also need to initialize the thread local storage for the new thread. Note, we 
  *  check here to make sure we are still within maxThreads
+ * Input:
  * Output: None
  **/
 VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
@@ -1940,6 +2081,7 @@ VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
  * Function: setupFile
  * Description: Opens and sets up any output files. Note, since this is an ASCII trace, it will setup 
  * trace.out according to the Data Ops trace file format.
+ * Input:
  * Output: None
  **/
 void setupFile(UINT16 infoSelect) {
@@ -2030,6 +2172,7 @@ void setupFile(UINT16 infoSelect) {
 /**
  * Function:
  * Description:
+ * Input:
  * Output:
  **/
 void write2Json() {
@@ -2230,6 +2373,7 @@ void write2Json() {
 /**
  * Function: endFile
  * Description:
+ * Input:
  * Output:
  **/
 void endFile() {
