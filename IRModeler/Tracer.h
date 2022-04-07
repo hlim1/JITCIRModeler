@@ -19,7 +19,7 @@ void check2MemRead(ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32
 // Analysis functions
 bool analyzeRecords(
         THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode, bool is_create, UINT32 system_id);
-void analyzeRegWrites(THREADID tid, const CONTEXT *ctx);
+void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode);
 void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id);
 void analyzeRegReads();
 

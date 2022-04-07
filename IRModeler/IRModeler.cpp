@@ -67,7 +67,6 @@ KNOB<bool> destRegOff(KNOB_MODE_WRITEONCE, "pintool", "nodestreg", "", "Don't in
 KNOB<bool> memWriteOff(KNOB_MODE_WRITEONCE, "pintool", "nomemwrite", "", "Don't include an instruction's memory writes in the trace");
 
 // JIT IR MODELING ===========================================
-string targetSystem = "";
 UINT32 system_id = UINT32_INVALID;
 
 bool is_jit = false;
@@ -125,6 +124,7 @@ void imgInstrumentation(IMG img, void *v) {
  * Output: None
  */
 void insInstrumentation(INS ins, void *v) {
+
     const ADDRINT addr = INS_Address(ins);
     
     if(!entryPointFound) {
@@ -182,7 +182,12 @@ void insInstrumentation(INS ins, void *v) {
     getFnName(rtn, img, fnStr);
 
     // Check and mark is_jit to true if the compiler for the system first appeared in the function name.
-    if (!is_jit && (fnStr.find(V8_JIT) != std::string::npos || fnStr.find(JSC_JIT) != std::string::npos)) {
+    if (
+            !is_jit && 
+            (fnStr.find(V8_JIT) != std::string::npos || 
+             fnStr.find(JSC_JIT) != std::string::npos ||
+             fnStr.find(SPM_JIT) != std::string::npos)
+    ) {
         is_jit = true;
     }
 
@@ -192,24 +197,19 @@ void insInstrumentation(INS ins, void *v) {
 
         // Identify current system.
         if (system_id == UINT32_INVALID) {
-            if (fnStr.find(SYSTEM_V8) != std::string::npos) {
-                targetSystem = SYSTEM_V8;
+            if (fnStr.find(V8_JIT) != std::string::npos) {
                 system_id = V8;
             }
-            else if (fnStr.find(SYSTEM_JSC) != std::string::npos) {
-                targetSystem = SYSTEM_JSC;
+            else if (fnStr.find(JSC_JIT) != std::string::npos) {
                 system_id = JSC;
+            }
+            else if (fnStr.find(SPM_JIT) != std::string::npos) {
+                system_id = SPM;
             }
         }
 
         // Check whether or not the current instruction is an instruction for node allocator function.
-        bool is_node_creation = false;
-        for (int i = 0; i < NODE_CREATORS_SIZE; i++) {
-            if (fnStr == MAIN_NODE_CREATORS[i]) {
-                is_node_creation = true;
-                break;
-            }
-        }
+        bool is_node_creation = fnInCreators(fnStr);
 
         // If the current instruction is for a node allocation and it's a return, construct modeled IR node.
         if (is_node_creation && INS_IsRet(ins)) {
