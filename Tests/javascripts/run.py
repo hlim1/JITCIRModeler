@@ -149,21 +149,21 @@ def run_ir_modeler(arguments: dict, v8Skip: list, jscSkip: list, spmSkip: list):
     if v8_cmd:
         print ("IR Modeling for V8 ... BEGIN")
         cmd = get_ir_modeler_cmd(arguments, v8_cmd)
-        get_ir_model(arguments, cmd, files, v8Skip)
+        get_ir_model(arguments, cmd, files, v8Skip, V8_IRJSONS_PATH)
     else:
         print ("IR Modeling for V8 ... SKIP")
     # Model IR of JavaScriptCore JIT Compiler.
     if jsc_cmd:
         print ("IR Modeling for JavaScriptCore ... BEGIN")
         cmd = get_ir_modeler_cmd(arguments, jsc_cmd)
-        get_ir_model(arguments, cmd, files, jscSkip)
+        get_ir_model(arguments, cmd, files, jscSkip, JSC_IRJSONS_PATH)
     else:
         print ("IR Modeling for JavaScriptCore ... SKIP")
     # Model IR of SpiderMonkey JIT Compiler.
     if spm_cmd:
         print ("IR Modeling for SpiderMonkey ... BEGIN")
         cmd = get_ir_modeler_cmd(arguments, spm_cmd)
-        get_ir_model(arguments, cmd, files, spmSkip)
+        get_ir_model(arguments, cmd, files, spmSkip, SPM_IRJSONS_PATH)
     else:
         print ("IR Modeling for SpiderMonkey ... SKIP")
 
@@ -197,13 +197,16 @@ def get_ir_modeler_cmd(arguments: dict, sys_cmd: list):
 
     return cmd
 
-def get_ir_model(arguments: dict, cmd: list, files: list, skip: list):
+def get_ir_model(arguments: dict, cmd: list, files: list, skip: list, IRJsons_Path: str):
     """This function runs IRModeler and JIT compuler system executable to
     get the modeled IR.
 
     args:
         arguments (dict): dictionary holding arguments.
+        cmd (list): command-line list to pass to subprocess.run.
+        files (list): list of all files in the test directory.
         skip (list): list of files to skip IR modeling.
+        IRJsons_Path (str): path to where the generated IRs to be stored.
 
     returns:
         None.
@@ -218,7 +221,7 @@ def get_ir_model(arguments: dict, cmd: list, files: list, skip: list):
             if str(output.returncode) not in RETURNCODES:
                 print (f"   Test File {f} ... PASSED")
                 file_id = int(f.split('_')[1].split('.')[0])
-                file_path = f"{IRJSONS_PATH}/ir_{file_id}.json"
+                file_path = f"{IRJsons_Path}/ir_{file_id}.json"
                 subprocess.run(['mv', './ir.json', file_path])
             else:
                 print (f"   Test File {f} ... FAILED with Return Code {RETURNCODES[str(output.returncode)]}")
