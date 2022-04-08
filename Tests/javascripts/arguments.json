@@ -1,5 +1,9 @@
 {
-    "executable-with-args": [],
-    "test-directory": ".",
+    "pin-path":"",
+    "irmodeler-path":,
+    "v8-executable-with-args": [],
+    "jsc-executable-with-args": [],
+    "spm-executable-with-args": [],
+    "test-directory": "",
     "language-ext": ".js"
 }

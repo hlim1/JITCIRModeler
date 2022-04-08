@@ -29,16 +29,10 @@ RETURNCODES = {
         "-15":"SIGTERM",
 }
 
-# Command-line arguments to run IR Modeler.
-IRMODELER = [
-        "../../../pin",
-        "-t",
-        "../../IRModeler/obj-intel64/IRModeler.so",
-        "--"
-]
-
 # Path to 'irJsons' directory.
-IRJSONS_PATH = "./irJsons"
+V8_IRJSONS_PATH = "./v8IRJsons"
+JSC_IRJSONS_PATH = "./jscIRJsons"
+SPM_IRJSONS_PATH = "./spmcIRJsons"
 
 def run_test_files(arguments: dict):
     """This function runs all test files with the selected JIT compiler
@@ -49,24 +43,72 @@ def run_test_files(arguments: dict):
         arguments (dict): dictionary holding arguments.
 
     returns:
-        (list) list of files to skip due to error while running.
+        (list) list of files to skip due to error while running with V8.
+        (list) list of files to skip due to error while running with JSC.
+        (list) list of files to skip due to error while running with SPM.
     """
-   
-    cmd = copy.copy(arguments["executable-with-args"])
-    assert (
-            os.path.exists(cmd[0])
-    ), f"ERROR: Executable {cmd[0]} does not exists."
-    cmd.append(None)
+
+    print ("Running Test Files without IR Modeler...")
+    
+    # Extract Test Files Directory Path.
     test_dir = copy.copy(arguments["test-directory"])
     assert (
             os.path.exists(test_dir)
     ), f"ERROR: Test directory does not exists."
     files = os.listdir(test_dir)
 
+    # Extract Command-line Arguments of Each JIT Compiler System.
+    v8_cmd = copy.copy(arguments["v8-executable-with-args"])
+    jsc_cmd = copy.copy(arguments["jsc-executable-with-args"])
+    spm_cmd = copy.copy(arguments["spm-executable-with-args"])
+
+    # Preapre Empty Skip Holders.
+    v8Skip = []
+    jscSkip = []
+    spmSkip = []
+
+    # Run Test Files with V8 Executable (+arguments).
+    if v8_cmd:
+        print ("Test for V8 ... BEGIN")
+        v8_cmd.append(None)
+        v8Skip = run_tests(arguments, v8_cmd, files)
+    else:
+        print ("Test for V8 ... SKIP")
+    # Run Test Files with JavaScriptCore Executable (+arguments).
+    if jsc_cmd:
+        print ("Test for JavaScriptCore ... BEGIN")
+        jsc_cmd.append(None)
+        jscSkip = run_tests(arguments, jsc_cmd, files)
+    else:
+        print ("Test for JavaScriptCore ... SKIP")
+    # Run Test Files with SpiderMonkey Executable (+arguments).
+    if spm_cmd:
+        print ("Test for SpiderMonkey ... BEGIN")
+        spm_cmd.append(None)
+        spmSkip = run_tests(arguments, spm_cmd, files)
+    else:
+        print ("Test for SpiderMonkey ... SKIP")
+
+    return v8Skip, jscSkip, spmSkip
+
+def run_tests(arguments: dict, cmd: list, files: list):
+    """This function runs all test files in the test directory with the passed
+    command-line argument.
+
+    args:
+        arguments (dict): dictionary holding arguments.
+        cmd (list): command-line to run the test files.
+        files (list): list of all file names in the test directory.
+
+    returns:
+        (list) list of files to skip due to error while running.
+    """
+
+    # Extract Test Files Directory Path.
+    test_dir = copy.copy(arguments["test-directory"])
+
     # Collect and hold files to skip when running with IR Modeler.
     skip = []
-
-    print ("Running test files without IR Modeler...")
 
     for f in files:
         if f.endswith(arguments["language-ext"]):
@@ -74,14 +116,14 @@ def run_test_files(arguments: dict):
             output = subprocess.run(cmd, capture_output=True, text=True)
 
             if str(output.returncode) not in RETURNCODES:
-                print (f"Test File {f} ... PASSED")
+                print (f"   Test File {f} ... PASSED")
             else:
-                print (f"Test File {f} ... FAILED with Return Code {RETURNCODES[str(output.returncode)]}")
+                print (f"   Test File {f} ... FAILED with Return Code {RETURNCODES[str(output.returncode)]}")
                 skip.append(f)
 
     return skip
 
-def run_ir_modeler(arguments: dict, skip: list):
+def run_ir_modeler(arguments: dict, v8Skip: list, jscSkip: list, spmSkip: list):
     """This function runs all test files in the test directory with IR Modeler.
 
     args:
@@ -92,32 +134,97 @@ def run_ir_modeler(arguments: dict, skip: list):
         None.
     """
 
-    cmd = copy.copy(IRMODELER)
-    cmd.extend(copy.copy(arguments["executable-with-args"]))
-    cmd.append(None)
+    print ("Running test files with IR Modeler...")
 
-    test_dir = arguments["test-directory"]
+    # Extract Test Files Directory Path.
+    test_dir = copy.copy(arguments["test-directory"])
     files = os.listdir(test_dir)
 
-    print ("Running test files with IR Modeler...")
+    # Extract Command-line Arguments of Each JIT Compiler System.
+    v8_cmd = copy.copy(arguments["v8-executable-with-args"])
+    jsc_cmd = copy.copy(arguments["jsc-executable-with-args"])
+    spm_cmd = copy.copy(arguments["spm-executable-with-args"])
+
+    # Model IR of V8 JIT Compiler.
+    if v8_cmd:
+        print ("IR Modeling for V8 ... BEGIN")
+        cmd = get_ir_modeler_cmd(arguments, v8_cmd)
+        get_ir_model(arguments, cmd, files, v8Skip)
+    else:
+        print ("IR Modeling for V8 ... SKIP")
+    # Model IR of JavaScriptCore JIT Compiler.
+    if jsc_cmd:
+        print ("IR Modeling for JavaScriptCore ... BEGIN")
+        cmd = get_ir_modeler_cmd(arguments, jsc_cmd)
+        get_ir_model(arguments, cmd, files, jscSkip)
+    else:
+        print ("IR Modeling for JavaScriptCore ... SKIP")
+    # Model IR of SpiderMonkey JIT Compiler.
+    if spm_cmd:
+        print ("IR Modeling for SpiderMonkey ... BEGIN")
+        cmd = get_ir_modeler_cmd(arguments, spm_cmd)
+        get_ir_model(arguments, cmd, files, spmSkip)
+    else:
+        print ("IR Modeling for SpiderMonkey ... SKIP")
+
+    # Remove Unnecessary .out files.
+    os.remove("./trace.out")
+    os.remove("./data.out")
+    os.remove("./errors.out")
+
+def get_ir_modeler_cmd(arguments: dict, sys_cmd: list):
+    """This function constructs the command-line to pass to subprocess.run
+    with the Pin Tool, IRModeler, and JIT compiler system execution (+args).
+
+    args:
+        arguments (dict): dictionary holding arguments.
+        sys_cmd (list): JIT compiler system command-line (+arguments).
+
+    returns:
+        (list) constructed command-line.
+    """
+
+    # Prepare Command-line for Pin Tool and IRModeler.
+    cmd = [
+            arguments["pin-path"],
+            "-t",
+            arguments["irmodeler-path"],
+            "--"
+    ]
+
+    cmd.extend(sys_cmd)
+    cmd.append(None)
+
+    return cmd
+
+def get_ir_model(arguments: dict, cmd: list, files: list, skip: list):
+    """This function runs IRModeler and JIT compuler system executable to
+    get the modeled IR.
+
+    args:
+        arguments (dict): dictionary holding arguments.
+        skip (list): list of files to skip IR modeling.
+
+    returns:
+        None.
+    """
+
+    test_dir = copy.copy(arguments["test-directory"])
 
     for f in files:
         if f.endswith(arguments["language-ext"]) and f not in skip:
             cmd[-1] = f"{test_dir}/{f}"
             output = subprocess.run(cmd, capture_output=True, text=True)
             if str(output.returncode) not in RETURNCODES:
-                print (f"Test File {f} ... PASSED")
+                print (f"   Test File {f} ... PASSED")
                 file_id = int(f.split('_')[1].split('.')[0])
                 file_path = f"{IRJSONS_PATH}/ir_{file_id}.json"
                 subprocess.run(['mv', './ir.json', file_path])
             else:
-                print (f"Test File {f} ... FAILED with Return Code {RETURNCODES[str(output.returncode)]}")
+                print (f"   Test File {f} ... FAILED with Return Code {RETURNCODES[str(output.returncode)]}")
         elif f in skip:
-            print (f"Test file {F} ... SKIPPED")
+            print (f"   Test file {F} ... SKIPPED")
 
-    os.remove("./trace.out")
-    os.remove("./data.out")
-    os.remove("./error.out")
 
 def load_json(json_file: str):
     try:
@@ -144,7 +251,7 @@ if __name__ == "__main__":
     arguments = load_json(argument_f)
 
     # Run all test files in the test directory without IR Modeler.
-    skip = run_test_files(arguments)
-    
+    v8Skip, jscSkip, spmSkip = run_test_files(arguments)
+
     # Run all test files in the test directory with IR Modeler.
-    run_ir_modeler(arguments, skip)
+    run_ir_modeler(arguments, v8Skip, jscSkip, spmSkip)
