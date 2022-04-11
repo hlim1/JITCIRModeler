@@ -178,7 +178,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
-    
+
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
@@ -242,6 +242,8 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 
     ADDRINT address = ADDRINT_INVALID;
+
+    assert (currentRaxValSize > 0);
 
     address = uint8Toaddrint(currentRaxVal, currentRaxValSize);
 
@@ -1350,6 +1352,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
             PIN_SafeCopy(RAXValue, buf, fullSize);
 
             if (checkRAXValue(RAXValue)) {
+                assert (fullSize > 0);
                 PIN_SafeCopy(currentRaxVal, buf, fullSize);
                 currentRaxValSize = fullSize;
             }
