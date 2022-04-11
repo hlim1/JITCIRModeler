@@ -13,3 +13,7 @@
 - ```1684085SPM_floor.js```: [SpiderMonkey Report #16840855 with 'floor()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
 - ```1684085SPM_round.js```: [SpiderMonkey Report #16840855 with 'round()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
 - ```1684085SPM_trunc.js```: [SpiderMonkey Report #16840855 with 'trunc()' function](https://bugzilla.mozilla.org/show_bug.cgi?id=1684085)
+- ```185115JSC.js```: [JavaScriptCore Report #185115JSC](https://bugs.webkit.org/show_bug.cgi?id=185115)
+- ```228068JSC.js```: [JavaScriptCore Report #228068](https://bugs.webkit.org/show_bug.cgi?id=228068)
+- ```204457JSC.js```: [JavaScriptCore Report #204457](https://bugs.webkit.org/show_bug.cgi?id=204457)
+- ```210892JSC.js```: [JavaScriptCore Report #210892](https://bugs.webkit.org/show_bug.cgi?id=210892)
