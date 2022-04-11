@@ -30,7 +30,7 @@ Formated JSON file - ir.json
             "alive":true or false,
             "address":"node address",
             "opcode":"node opcode",
-            "is_cfgBlock":true or false,
+            "is_nonIR":true or false,
             "size":node size number,
             "edges":[list of edge node ids],
             "directValues": {
