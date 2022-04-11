@@ -1375,10 +1375,17 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
 }
 
 /**
- * Function:
- * Description:
+ * Function: analyzeMemWrites
+ * Description: This function analyzes the memory writes of current instruction.
+ *  In addition, it calls trackOptimization function to further analyze the memory writes
+ *  to seek for potential optimization event happeneing to the IR.
  * Input:
- * Output:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - is_range (bool): Boolean flag to indicate whether the currently analyzing instruction
+ *    is within the range of node formation or not.
+ *  - system_id (UINT32): JIT compiler system ID. 
+ * Output: None.
  **/
 void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id) {
 
@@ -1438,10 +1445,18 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
 }
 
 /**
- * Function:
- * Description:
+ * Function: trackOptimization
+ * Description: This function analyze the passed information extracted from the instruction to
+ *  identify whether the instruction is an event of IR optimization. If it is, then the function
+ *  updates the IR model and the optimization history holder to keep a record of optimization.
+ *  This function is called only in the analyzeMemWrites function.
  * Input:
- * Output:
+ *  - location (ADDRINT): Memory location where value is being written to.
+ *  - value (ADDRINT): Value that is being written to the location.
+ *  - valueSize (ADDRINT): Size of the written value.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - system_id (UINT32): JIT compiler system ID. 
+ * Output: None.
  **/
 void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id) {
 
@@ -1515,10 +1530,14 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 }
 
 /**
- * Function:
- * Description:
+ * Function: updateLogInfo
+ * Description: This function keeps track of the optimization and access history (log).
+ *  It updates the history holder of both in the node and IR graph models.
  * Input:
- * Output:
+ *  - node (Node*): IR node that was accessed.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - accesType (Access): Type of access to the node.
+ * Output: None.
  **/
 void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 
@@ -1545,10 +1564,13 @@ void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: isSameAccess
+ * Description: This function checks whether the currently observed node access is the same
+ *  as the last node access (the same node and same access type) or not.
  * Input:
- * Output:
+ *  - node (Node*): IR node that was accessed.
+ *  - fnInfo (FnInfo): Information of the function and access type to the node.
+ * Output: true if same, false otherwise.
  **/
 bool isSameAccess(Node *node, FnInfo fnInfo) {
 
@@ -1575,9 +1597,13 @@ bool isSameAccess(Node *node, FnInfo fnInfo) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: edgeRemoval
+ * Description: This function removes a node from edge in the IR model if edge removal
+ *  optimization event's been observed. Then, it updates the edge owner node's history.
  * Input:
+ *  - node (Node*): Owner node of the edge, which removal optimization was performed.
+ *  - edge_idx (int): Index of the edge that is target to be removed in the model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output:
  **/
 void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
@@ -1601,10 +1627,15 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: edgeReplace
+ * Description: This function replaces nodes from edge in the IR model if edge replacement
+ *  optimization event's been observed. Then, it updates the edge owner node's history.
  * Input:
- * Output:
+ *  - node (Node*): Owner node of the edge, which replacement optimization was performed.
+ *  - value_id (int):  Value ID is equal to one of the node's ID in the IR model.
+ *  - edge_idx (int): Index of the edge that is target to be replaced in the model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
 void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
 
@@ -1632,10 +1663,15 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: edgeAddition
+ * Description: This function adds new edge to a node if edge additiion optimization event's
+ *  been optimization. Then, it updates the edge owner node's history.
  * Input:
- * Output:
+ *  - node (Node*): Owner node of the edge, which add optimization was performed.
+ *  - location (ADDRINT): Address of location where the value is written.
+ *  - value_id (int):  Value ID is equal to one of the node's ID in the IR model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
 void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
 
@@ -1654,10 +1690,13 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: nodeDestroy
+ * Description: This function set node's alive field to false if node destroy optimizaion
+ *  event's been observed. Then, it updates the destroyed node's history.
  * Input:
- * Output:
+ *  - node (Node*): Destroyed node.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
 void nodeDestroy(Node *node, UINT32 fnId) {
 
@@ -1668,10 +1707,15 @@ void nodeDestroy(Node *node, UINT32 fnId) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: directValueWrite
+ * Description: This function observes value writing to a node and updates the node model,
+ *  which the value was written. Note that this function only handle direct write.
  * Input:
- * Output:
+ *  - node (Node*): Node where the value's been written.
+ *  - location (ADDRINT): Address where the value is been written.
+ *  - value (ADDRINT): Written value.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
 void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) {
 
@@ -1720,9 +1764,16 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
 }
 
 /**
- * Function:
- * Description:
+ * Function: opcodeUpdate
+ * Description: This function updates the node's opcode if opcode update optimization
+ *  has been observed. Then, it updates the node's history.
  * Input:
+ *  - node (Node*): Node that opcode is been updated.
+ *  - location (ADDRINT): Address where value is written.
+ *  - value (ADDRINT): Value written. Likely to be a new opcode.
+ *  - valueSize (ADDRINT): Size of value.
+ *  - system_id (UINT32): JIT compiler system ID.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output:
  **/
 void opcodeUpdate(
@@ -1753,7 +1804,6 @@ void opcodeUpdate(
  * Description: Get a buffer for the file that is guaranteed to fit the given size. Must provide the file's
  *  buffer and the current position in that buffer. 
  * Side Effects: Writes to file if there is not enough space in buffer
- * Input:
  * Output: the position in the buffer that it is safe to write to
  **/
 UINT8 *getFileBuf(UINT32 size, UINT8 *fileBuf, UINT8 *curFilePos, FILE *file) {
@@ -1769,7 +1819,6 @@ UINT8 *getFileBuf(UINT32 size, UINT8 *fileBuf, UINT8 *curFilePos, FILE *file) {
 /**
  * Function: startTrace
  * Description: Function used to mark when to start tracing.
- * Input:
  * Output: None
  **/
 void startTrace() {
@@ -1798,7 +1847,6 @@ UINT8 *printDataLabel(UINT8 *pos, UINT64 eventId) {
  *  address, value and size. Additionally, if sizePos is provided, it set the sizePos's value to
  *  the location of size in the buffer.
  * Assumptions: There is enough space in the buffer
- * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printMemData(UINT8 *pos, UINT16 size, ADDRINT addr, UINT8 *val, UINT8 **sizePos) {
@@ -1827,7 +1875,6 @@ UINT8 *printMemData(UINT8 *pos, UINT16 size, ADDRINT addr, UINT8 *val, UINT8 **s
  * Function: printExceptionEvent
  * Description: Writes an exception event into the location specified by pos
  * Assumptions: There is enough space in the buffer
- * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printExceptionEvent(UINT8 *pos, ExceptionType eType, INT32 info, THREADID tid, ADDRINT addr) {
@@ -1861,7 +1908,6 @@ UINT8 *printExceptionEvent(UINT8 *pos, ExceptionType eType, INT32 info, THREADID
  *  It also fills in valBuf with the value of the register
  * Assumptions: There is enough space in the buffer, valBuf is at least 64 bytes
  * Side Effects: Fills in valBuf with register value
- * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printDataReg(THREADID tid, UINT8 *pos, LynxReg lReg, const CONTEXT *ctxt, UINT8 *valBuf) {
@@ -1888,7 +1934,6 @@ UINT8 *printDataReg(THREADID tid, UINT8 *pos, LynxReg lReg, const CONTEXT *ctxt,
 /**
  * Function: checkInitializedStatus
  * Description: Checks to see if we have printed out the initial status of a thread.
- * Input:
  * Output: True if initialized, false otherwise
  **/
 bool checkInitializedStatus(THREADID tid) {
@@ -1898,7 +1943,6 @@ bool checkInitializedStatus(THREADID tid) {
 /**
  * Function: initThread
  * Description: Records the initial state of a thread in the trace
- * Input:
  * Output: None
  **/
 void initThread(THREADID tid, const CONTEXT *ctx) {
@@ -1913,7 +1957,6 @@ void initThread(THREADID tid, const CONTEXT *ctx) {
 /**
  * Function: initIns
  * Description: Initializes the thread local storage for a new instruction. 
- * Input:
  * Output: None
  **/
 void PIN_FAST_ANALYSIS_CALL initIns(THREADID tid) {
@@ -1951,7 +1994,6 @@ void PIN_FAST_ANALYSIS_CALL recordSrcId(THREADID tid, UINT32 srcId) {
  * Function: contextChange
  * Description: Records information in a trace if an exception occurred, resulting in a context change. 
  *  Note, this is the only place that event ids are adjusted due to an exception event.
- * Input:
  * Output: None
  **/
 void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fromCtx, CONTEXT *toCtx, INT32 info, void *v) {
@@ -1985,7 +2027,6 @@ void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fr
 /**
  * Function: recordRegState
  * Description: Records the register state for the current architecture in data file.
- * Input:
  * Output: None
  **/
 void recordRegState(THREADID tid, const CONTEXT *ctxt) {
@@ -2055,7 +2096,6 @@ void recordRegState(THREADID tid, const CONTEXT *ctxt) {
  * Description: Call this when another thread starts so we can accurately track the number of threads 
  *  the program has. We also need to initialize the thread local storage for the new thread. Note, we 
  *  check here to make sure we are still within maxThreads
- * Input:
  * Output: None
  **/
 VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
@@ -2081,7 +2121,6 @@ VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
  * Function: setupFile
  * Description: Opens and sets up any output files. Note, since this is an ASCII trace, it will setup 
  * trace.out according to the Data Ops trace file format.
- * Input:
  * Output: None
  **/
 void setupFile(UINT16 infoSelect) {
@@ -2170,10 +2209,10 @@ void setupFile(UINT16 infoSelect) {
 // ===========================================================
 
 /**
- * Function:
- * Description:
- * Input:
- * Output:
+ * Function: write2Json
+ * Description: This function writes modeled IR to a JSON file in formatted structure.
+ * Input: None.
+ * Output: None.
  **/
 void write2Json() {
     ofstream jsonFile;
@@ -2372,9 +2411,10 @@ void write2Json() {
 
 /**
  * Function: endFile
- * Description:
- * Input:
- * Output:
+ * Description: This function is being called at the end of tracing.
+ *  Currently, this function simply calls write2Json to write the modeled IR to a JSON file.
+ * Input: None.
+ * Output: None.
  **/
 void endFile() {
     // Write IR to a file in JSON.
