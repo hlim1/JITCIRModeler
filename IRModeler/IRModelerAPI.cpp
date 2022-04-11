@@ -1270,7 +1270,7 @@ bool analyzeRecords(
             assert (i < MAX_REGS);
             RegInfo srcReg = srcRegsHolder[i];
             assert(targetSrcRegs.size()+1 < targetSrcRegs.max_size());
-            targetSrcRegs[targetSrcRegsKey] =  srcReg;
+            targetSrcRegs[targetSrcRegsKey] = srcReg;
             targetSrcRegsKey++;
         }
         for (int j = 0; j < desRegSize; j++) {
