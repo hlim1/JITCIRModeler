@@ -869,6 +869,18 @@ ADDRINT get_size_spm(ADDRINT address) {
                     break;
                 }
             }
+            if (size == ADDRINT_INVALID) {
+                for (it2 = targetDesRegs.begin(); it2 != targetDesRegs.end(); ++it2) {
+                    RegInfo desReg = it2->second;
+                    if (
+                            desReg.instOp == srcReg.instOp && 
+                            desReg.value - srcReg.value < MAX_NODE_SIZE
+                    ) {
+                        size = desReg.value - srcReg.value;
+                        break;
+                    }
+                }
+            }
             break;
         }
     }
