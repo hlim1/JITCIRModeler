@@ -183,33 +183,58 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
 
+    // Get opcode of a node.
+    ADDRINT *opcode;
+    opcode = get_opcode(node, system_id, fnId);
+    node->opcode = opcode[0];
+    node->opcodeAddress = opcode[1];
+
+    // DEBUG
+    string fn = strTable.get(fnId);
+    cout << "Node ID: " << dec << node->id << ". ";
+    cout << "Address: " << hex << node->intAddress << ". ";
+    cout << "Opcode: " << hex << node->opcode << ". ";
+    cout << "Function Name: " << fn << ". ";
+    cout << "System ID: " << dec << system_id << ". ";
+    cout << endl;
+
+    // New node allocation function(s) do "not" always generate nodes.
+    // It is true that the function(s) is called to allocate the new node,
+    // but the function itself also performs several different checks whether
+    // the allocation is really needed or not. If it evaluates (for whatever
+    // reason) the allocation is not needed, it simply returns without any
+    // node allocation. This we can check by whether the opcode was assigned
+    // to node or not. If no opcode was assiggned, then we ignore to construct
+    // the node model and return as well.
+    if (node->opcode == ADDRINT_INVALID) {
+        return;
+    }
+
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
     assert (node->blockHead != ADDRINT_INVALID);
 
     // Get node size.
     node->size = get_size(node->blockHead, system_id);
+
+    // DEBUG
+    if (node->size == ADDRINT_INVALID) {
+        cout << "ERROR: Node Size is Missing! ";
+        cout << "Node Size: " << dec << node->size << endl;
+        exit(1);
+    }
+    if (node->size >= MAX_NODE_SIZE) {
+        cout << "ERROR: Node Size is Too Large! ";
+        cout << "Node Size: " << dec << node->size << endl;
+        exit(1);
+    }
+
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
 
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
     assert (node->blockTail != ADDRINT_INVALID);
-
-    // Get opcode of a node.
-    ADDRINT *opcode;
-    opcode = get_opcode(node, system_id, fnId);
-    node->opcode = opcode[0];
-    node->opcodeAddress = opcode[1];
-    // Check the opcode existence only for those nodes' is_nonIR is set to false.
-    if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
-        string fn = strTable.get(fnId);
-        cerr << "ERROR: Opcode is Missing!";
-        cerr << "Node ID: " << dec << node->id << ". ";
-        cerr << "Function Name: " << fn << ". ";
-        cerr << "System ID: " << dec << system_id << endl;
-        exit(1);
-    }
 
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
@@ -382,15 +407,16 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
     // data only if the current node is not a block node. Otherwise, we set is_nonIR to true.
     if (!fnInNonIRAllocs(fn)) {
         map<ADDRINT,MWInst>::iterator it;
-        for (it = writes.begin(); it != writes.end(); ++it) {
+        for (it = targetMWs.begin(); it != targetMWs.end(); ++it) {
             MWInst write = it->second;
-            if (
-                    write.valueSize == SPM_OPCODE_SIZE &&
-                    (write.location > node->blockHead && write.location < node->blockTail)
-            ) {
-                opcode[0] = write.value;
-                opcode[1] = write.location;
-                break;
+            if (write.valueSize == SPM_OPCODE_SIZE) {
+                for (int i = 0; i < write.regSize; i++) {
+                    if ((write.srcRegs[i]).value == node->intAddress) {
+                        opcode[0] = write.value;
+                        opcode[1] = write.location;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -846,7 +872,6 @@ ADDRINT get_size_spm(ADDRINT address) {
             break;
         }
     }
-    assert (size != ADDRINT_INVALID);
 
     return size;
 }
