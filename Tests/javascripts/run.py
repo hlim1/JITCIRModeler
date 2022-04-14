@@ -32,7 +32,7 @@ RETURNCODES = {
 # Path to 'irJsons' directory.
 V8_IRJSONS_PATH = "./v8IRJsons"
 JSC_IRJSONS_PATH = "./jscIRJsons"
-SPM_IRJSONS_PATH = "./spmcIRJsons"
+SPM_IRJSONS_PATH = "./spmIRJsons"
 
 def run_test_files(arguments: dict):
     """This function runs all test files with the selected JIT compiler
@@ -74,13 +74,6 @@ def run_test_files(arguments: dict):
         v8Skip = run_tests(arguments, v8_cmd, files)
     else:
         print ("Test for V8 ... SKIP")
-    # Run Test Files with JavaScriptCore Executable (+arguments).
-    if jsc_cmd:
-        print ("Test for JavaScriptCore ... BEGIN")
-        jsc_cmd.append(None)
-        jscSkip = run_tests(arguments, jsc_cmd, files)
-    else:
-        print ("Test for JavaScriptCore ... SKIP")
     # Run Test Files with SpiderMonkey Executable (+arguments).
     if spm_cmd:
         print ("Test for SpiderMonkey ... BEGIN")
@@ -88,6 +81,13 @@ def run_test_files(arguments: dict):
         spmSkip = run_tests(arguments, spm_cmd, files)
     else:
         print ("Test for SpiderMonkey ... SKIP")
+    # Run Test Files with JavaScriptCore Executable (+arguments).
+    if jsc_cmd:
+        print ("Test for JavaScriptCore ... BEGIN")
+        jsc_cmd.append(None)
+        jscSkip = run_tests(arguments, jsc_cmd, files)
+    else:
+        print ("Test for JavaScriptCore ... SKIP")
 
     return v8Skip, jscSkip, spmSkip
 
@@ -152,13 +152,6 @@ def run_ir_modeler(arguments: dict, v8Skip: list, jscSkip: list, spmSkip: list):
         get_ir_model(arguments, cmd, files, v8Skip, V8_IRJSONS_PATH)
     else:
         print ("IR Modeling for V8 ... SKIP")
-    # Model IR of JavaScriptCore JIT Compiler.
-    if jsc_cmd:
-        print ("IR Modeling for JavaScriptCore ... BEGIN")
-        cmd = get_ir_modeler_cmd(arguments, jsc_cmd)
-        get_ir_model(arguments, cmd, files, jscSkip, JSC_IRJSONS_PATH)
-    else:
-        print ("IR Modeling for JavaScriptCore ... SKIP")
     # Model IR of SpiderMonkey JIT Compiler.
     if spm_cmd:
         print ("IR Modeling for SpiderMonkey ... BEGIN")
@@ -166,6 +159,13 @@ def run_ir_modeler(arguments: dict, v8Skip: list, jscSkip: list, spmSkip: list):
         get_ir_model(arguments, cmd, files, spmSkip, SPM_IRJSONS_PATH)
     else:
         print ("IR Modeling for SpiderMonkey ... SKIP")
+    # Model IR of JavaScriptCore JIT Compiler.
+    if jsc_cmd:
+        print ("IR Modeling for JavaScriptCore ... BEGIN")
+        cmd = get_ir_modeler_cmd(arguments, jsc_cmd)
+        get_ir_model(arguments, cmd, files, jscSkip, JSC_IRJSONS_PATH)
+    else:
+        print ("IR Modeling for JavaScriptCore ... SKIP")
 
     # Remove Unnecessary .out files.
     os.remove("./trace.out")
