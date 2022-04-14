@@ -189,15 +189,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
 
-    // DEBUG
-    string fn = strTable.get(fnId);
-    cout << "Node ID: " << dec << node->id << ". ";
-    cout << "Address: " << hex << node->intAddress << ". ";
-    cout << "Opcode: " << hex << node->opcode << ". ";
-    cout << "Function Name: " << fn << ". ";
-    cout << "System ID: " << dec << system_id << ". ";
-    cout << endl;
-
     // New node allocation function(s) do "not" always generate nodes.
     // It is true that the function(s) is called to allocate the new node,
     // but the function itself also performs several different checks whether
@@ -216,19 +207,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 
     // Get node size.
     node->size = get_size(node->blockHead, system_id);
-
-    // DEBUG
-    if (node->size == ADDRINT_INVALID) {
-        cout << "ERROR: Node Size is Missing! ";
-        cout << "Node Size: " << dec << node->size << endl;
-        exit(1);
-    }
-    if (node->size >= MAX_NODE_SIZE) {
-        cout << "ERROR: Node Size is Too Large! ";
-        cout << "Node Size: " << dec << node->size << endl;
-        exit(1);
-    }
-
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
 

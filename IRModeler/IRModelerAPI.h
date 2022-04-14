@@ -26,18 +26,18 @@ const int V8_OPCODE_SIZE = 2;
 const int JSC_OPCODE_SIZE = 4;
 const int SPM_OPCODE_SIZE = 2;
 
-const std::string NODE_FORMERS[2] = {
-    "v8::internal::compiler::Node::New",
+const std::string NODE_FORMERS[1] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[44] = {
+const std::string NODE_BLOCK_ALLOCATORS[45] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
     "js::jit::MParameter::New<int const&>",
     "js::jit::MConstant::New",
+    "js::jit::MConstant::MConstant",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
     "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
@@ -78,13 +78,14 @@ const std::string NODE_BLOCK_ALLOCATORS[44] = {
     "js::jit::MTest::New<js::jit::MDefinition*, js::jit::MBasicBlock*, js::jit::MBasicBlock*>"
 };
 
-const std::string MAIN_NODE_CREATORS[44] { 
+const std::string MAIN_NODE_CREATORS[45] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
     "js::jit::MParameter::New<int const&>",
     "js::jit::MConstant::New",
+    "js::jit::MConstant::MConstant",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
     "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
@@ -130,9 +131,9 @@ const std::string NONIR_NODE_ALLOCATORS[2] = {
     "js::jit::MResumePoint::New"
 };
 
-const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 44;
-const int NODE_CREATORS_SIZE = 44;
+const int NODE_FORMERS_SIZE = 1;
+const int NODE_ALLOC_SIZE = 45;
+const int NODE_CREATORS_SIZE = 45;
 const int NONIR_NODE_ALLOC_SIZE = 2;
 
 // Main modeled IR constructor function.
