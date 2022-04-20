@@ -188,6 +188,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     opcode = get_opcode(node, system_id, fnId);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
+    node->id2Opcode[node->opcodeId] = opcode[0];
 
     // New node allocation function(s) do "not" always generate nodes.
     // It is true that the function(s) is called to allocate the new node,
@@ -197,7 +198,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // node allocation. This we can check by whether the opcode was assigned
     // to node or not. If no opcode was assiggned, then we ignore to construct
     // the node model and return as well.
-    if (node->opcode == ADDRINT_INVALID) {
+    if (node->opcode == ADDRINT_INVALID and !node->is_nonIR) {
         return;
     }
 
@@ -213,22 +214,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
     assert (node->blockTail != ADDRINT_INVALID);
-
-    // Get opcode of a node.
-    ADDRINT *opcode;
-    opcode = get_opcode(node, system_id, fnId);
-    node->opcode = opcode[0];
-    node->opcodeAddress = opcode[1];
-    node->id2Opcode[node->opcodeId] = opcode[0];
-    // Check the opcode existence only for those nodes' is_nonIR is set to false.
-    if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
-        string fn = strTable.get(fnId);
-        cerr << "ERROR: Opcode is Missing!";
-        cerr << "Node ID: " << dec << node->id << ". ";
-        cerr << "Function Name: " << fn << ". ";
-        cerr << "System ID: " << dec << system_id << endl;
-        exit(1);
-    }
 
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
