@@ -201,6 +201,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     opcode = get_opcode(node, system_id, fnId);
     node->opcode = opcode[0];
     node->opcodeAddress = opcode[1];
+    node->id2Opcode[node->opcodeId] = opcode[0];
     // Check the opcode existence only for those nodes' is_nonIR is set to false.
     if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
         string fn = strTable.get(fnId);
@@ -1791,8 +1792,8 @@ void opcodeUpdate(
     // If update opcode value exists and the value is not equal to the current node's opcode,
     // update the node's opcode and information tracking variables.
     if (opcode[0] != ADDRINT_INVALID && opcode[0] != node->opcode) {
-        node->opcode = opcode[0];
-        node->opcodeAddress = opcode[1];
+        // We don't update the main opcode.
+        // We track only the optimization (update) information.
         // Update opcode update information.
         node->opcodeId++;
         assert((node->id2Opcode).size()+1 < (node->id2Opcode).max_size());
@@ -2229,7 +2230,7 @@ void write2Json() {
         Node *node = IRGraph->nodes[i];
         jsonFile << "       {" << endl;
         jsonFile << "           \"id\": " << dec << node->id << "," << endl; 
-        jsonFile << "           \"alive\": "; 
+        jsonFile << "           \"alive\": ";
         if (node->alive) {
             jsonFile << "true," << endl;
         }
