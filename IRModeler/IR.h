@@ -4,7 +4,7 @@
 #include "pin.H"
 #include <map>
 
-const int MAX_NODES     = 1000;     // Max number of nodes.
+const int MAX_NODES     = 2000;     // Max number of nodes.
 const int MAX_NODE_SIZE = 500;      // Max number of locations between block head & tail.
 
 enum Access {

@@ -183,6 +183,24 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
 
+    // Get opcode of a node.
+    ADDRINT *opcode;
+    opcode = get_opcode(node, system_id, fnId);
+    node->opcode = opcode[0];
+    node->opcodeAddress = opcode[1];
+
+    // New node allocation function(s) do "not" always generate nodes.
+    // It is true that the function(s) is called to allocate the new node,
+    // but the function itself also performs several different checks whether
+    // the allocation is really needed or not. If it evaluates (for whatever
+    // reason) the allocation is not needed, it simply returns without any
+    // node allocation. This we can check by whether the opcode was assigned
+    // to node or not. If no opcode was assiggned, then we ignore to construct
+    // the node model and return as well.
+    if (node->opcode == ADDRINT_INVALID) {
+        return;
+    }
+
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
     assert (node->blockHead != ADDRINT_INVALID);
@@ -383,15 +401,16 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
     // data only if the current node is not a block node. Otherwise, we set is_nonIR to true.
     if (!fnInNonIRAllocs(fn)) {
         map<ADDRINT,MWInst>::iterator it;
-        for (it = writes.begin(); it != writes.end(); ++it) {
+        for (it = targetMWs.begin(); it != targetMWs.end(); ++it) {
             MWInst write = it->second;
-            if (
-                    write.valueSize == SPM_OPCODE_SIZE &&
-                    (write.location > node->blockHead && write.location < node->blockTail)
-            ) {
-                opcode[0] = write.value;
-                opcode[1] = write.location;
-                break;
+            if (write.valueSize == SPM_OPCODE_SIZE) {
+                for (int i = 0; i < write.regSize; i++) {
+                    if ((write.srcRegs[i]).value == node->intAddress) {
+                        opcode[0] = write.value;
+                        opcode[1] = write.location;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -844,10 +863,21 @@ ADDRINT get_size_spm(ADDRINT address) {
                     break;
                 }
             }
+            if (size == ADDRINT_INVALID) {
+                for (it2 = targetDesRegs.begin(); it2 != targetDesRegs.end(); ++it2) {
+                    RegInfo desReg = it2->second;
+                    if (
+                            desReg.instOp == srcReg.instOp && 
+                            desReg.value - srcReg.value < MAX_NODE_SIZE
+                    ) {
+                        size = desReg.value - srcReg.value;
+                        break;
+                    }
+                }
+            }
             break;
         }
     }
-    assert (size != ADDRINT_INVALID);
 
     return size;
 }
