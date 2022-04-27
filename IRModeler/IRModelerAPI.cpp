@@ -190,6 +190,11 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->opcodeAddress = opcode[1];
     node->id2Opcode[node->opcodeId] = opcode[0];
 
+    // DEBUG
+    string fn = strTable.get(fnId);
+    cout << "Node ID: " << dec << node->id << "; Opcode: " << hex << node->opcode;
+    cout << "; Function: " << fn << endl;
+
     // New node allocation function(s) do "not" always generate nodes.
     // It is true that the function(s) is called to allocate the new node,
     // but the function itself also performs several different checks whether
@@ -396,6 +401,9 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
                         break;
                     }
                 }
+            }
+            if (opcode[0] != ADDRINT_INVALID) {
+                break;
             }
         }
     }
