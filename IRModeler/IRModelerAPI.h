@@ -142,7 +142,7 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
 // API functions for system-specifics.
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id);
 ADDRINT *get_opcode(Node *node, UINT32 system_id, UINT32 fnId);
-ADDRINT get_size(ADDRINT address, UINT32 system_id);
+ADDRINT get_size(ADDRINT address, Node *node, UINT32 system_id);
 ADDRINT get_node_block_head(ADDRINT address, UINT32 system_id);
 void    get_init_block_locs(Node *node, UINT32 system_id);
 ADDRINT *get_updated_opcode(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id);
@@ -153,8 +153,9 @@ void    check_and_fix_opcode();
 
 // Functions for V8 goes here.
 ADDRINT *get_opcode_v8(Node *node);
-ADDRINT get_size_v8(ADDRINT address);
+ADDRINT get_size_v8(ADDRINT address, Node *node);
 ADDRINT get_node_block_head_v8(ADDRINT address);
+ADDRINT get_size_v8_v6(ADDRINT address, Node *node);
 ADDRINT *get_update_opcode_v8(Node* node, ADDRINT value);
 // Functions for JSC goes here.
 ADDRINT *get_opcode_jsc(Node *node);

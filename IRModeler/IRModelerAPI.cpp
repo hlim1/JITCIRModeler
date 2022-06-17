@@ -103,8 +103,10 @@ IR *IRGraph = new IR();
 const string TARGET_REG = "RAX";
 const LynxReg TARGET_LREG = LYNX_RAX;
 const UINT32 ADD = XED_ICLASS_ADD;
+const UINT32 LEA = XED_ICLASS_LEA;
 const int MAX_REGS = 10;
 const ADDRINT WIPEMEM = 0;
+const ADDRINT V8_V6_DEFAULT = 40;
 
 // Strcut for keeping the instruction id.
 struct Instruction {
@@ -147,6 +149,11 @@ map<ADDRINT,MWInst> targetMWs;  // Write location address to MWInst object (Targ
 map<int,RegInfo> targetSrcRegs;  // targetSrcRegsKey to RegInfo object.
 map<int,RegInfo> targetDesRegs;  // targetDesRegsKey to RegInfo object.
 
+map<int,RegInfo> zoneSrcRegs;
+map<int,RegInfo> zoneDesRegs;
+int zoneSrcRegsKey = 0;
+int zoneDesRegsKey = 0;
+
 RegInfo srcRegsHolder[MAX_REGS];
 RegInfo desRegsHolder[MAX_REGS];
 int srcRegSize = 0;
@@ -183,14 +190,22 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
 
+    // DEBUG
+    cout << "node: " << dec << node->id << "; " << hex << node->intAddress << "; " << node->opcode << endl;
+
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
     assert (node->blockHead != ADDRINT_INVALID);
 
     // Get node size.
-    node->size = get_size(node->blockHead, system_id);
+    node->size = get_size(node->blockHead, node, system_id);
+
+    // DEBUG
+    cout << "   - size: " << dec << node->size << endl;
+
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
+
 
     // Get block tail address.
     node->blockTail = node->blockHead + node->size;
@@ -721,12 +736,13 @@ int compareValuetoIRNodes(ADDRINT value) {
  *  - system_id (UINT32): JIT compiler system ID.
  * Output: Size of node block size.
  **/
-ADDRINT get_size(ADDRINT address, UINT32 system_id) {
+ADDRINT get_size(ADDRINT address, Node *node, UINT32 system_id) {
 
     ADDRINT size = ADDRINT_INVALID;
 
     if (system_id == V8) {
-        size = get_size_v8(address);
+        // size = get_size_v8(address, node);
+        size = get_size_v8_v6(address, node);
     }
     else if (system_id == JSC) {
         size = get_size_jsc(address);
@@ -748,7 +764,7 @@ ADDRINT get_size(ADDRINT address, UINT32 system_id) {
  *  - address (ADDRINT): Address of a node to get the block size.
  * Output: Size of node block size.
  **/
-ADDRINT get_size_v8(ADDRINT address) {
+ADDRINT get_size_v8(ADDRINT address, Node *node) {
 
     ADDRINT size = ADDRINT_INVALID;
     RegInfo target;
@@ -774,6 +790,31 @@ ADDRINT get_size_v8(ADDRINT address) {
         }
     }
     assert (size != ADDRINT_INVALID);
+
+    return size;
+}
+
+ADDRINT get_size_v8_v6(ADDRINT address, Node *node) {
+
+    ADDRINT size = ADDRINT_INVALID;
+
+    map<int,RegInfo>::iterator it1;
+    for (it1 = zoneDesRegs.begin(); it1 != zoneDesRegs.end(); ++it1) {
+        RegInfo desReg = it1->second;
+        if (desReg.instOp == LEA && desReg.value == address) {
+            map<int,RegInfo>::iterator it2;
+            for (it2 = zoneSrcRegs.begin(); it2 != zoneSrcRegs.end(); ++it2) {
+                RegInfo srcReg = it2->second;
+                if (srcReg.instId == desReg.instId) {
+                    size = srcReg.value;
+                }
+            }
+        }
+    }
+
+    if (size == ADDRINT_INVALID || size > MAX_NODE_SIZE) {
+        size = V8_V6_DEFAULT;
+    }
 
     return size;
 }
@@ -1256,7 +1297,8 @@ bool analyzeRecords(
     // If the instruction has register write, then analyze register write, e.g., W:RAX=...
     // Note: We only care about the last RAX register value of node allocator
     // function instructions.
-    if(fnInAllocs(fn) && data.destRegs != NULL) {
+    if(data.destRegs != NULL && 
+            (fnInAllocs(fn) || fn == "v8::internal::Zone::New" || fn == "v8::internal::Zone::NewExpand")) {
         analyzeRegWrites(tid, ctx, fnId, opcode);
         data.destRegs = NULL;
     }
@@ -1268,7 +1310,7 @@ bool analyzeRecords(
             assert (i < MAX_REGS);
             RegInfo srcReg = srcRegsHolder[i];
             assert(targetSrcRegs.size()+1 < targetSrcRegs.max_size());
-            targetSrcRegs[targetSrcRegsKey] =  srcReg;
+            targetSrcRegs[targetSrcRegsKey] = srcReg;
             targetSrcRegsKey++;
         }
         for (int j = 0; j < desRegSize; j++) {
@@ -1277,6 +1319,21 @@ bool analyzeRecords(
             assert(targetDesRegs.size()+1 < targetDesRegs.max_size());
             targetDesRegs[targetDesRegsKey] = desReg;
             targetDesRegsKey++;
+        }
+    }
+
+    if (fn == "v8::internal::Zone::New" || fn == "v8::internal::Zone::NewExpand") {
+        for (int i = 0; i < srcRegSize; i++) {
+            assert (i < MAX_REGS);
+            RegInfo srcReg = srcRegsHolder[i];
+            zoneSrcRegs[zoneSrcRegsKey] = srcReg;
+            zoneSrcRegsKey++;
+        }
+        for (int j = 0; j < desRegSize; j++) {
+            assert (j < MAX_REGS);
+            RegInfo desReg = desRegsHolder[j];
+            zoneDesRegs[zoneDesRegsKey] = desReg;
+            zoneDesRegsKey++;
         }
     }
 
@@ -1333,6 +1390,8 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
 
     desRegSize = 0;
 
+    string fn = strTable.get(fnId);
+
     REG reg;
     UINT8 buf[LARGEST_REG_SIZE];
     const RegVector *writeRegs = data.destRegs;
@@ -1345,7 +1404,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
 
         string LynRegStr = LynxReg2Str(fullLReg);
         // Update currentRaxVal.
-        if (LynRegStr == TARGET_REG) {
+        if (LynRegStr == TARGET_REG && fnInAllocs(fn)) {
             UINT8 RAXValue[fullSize];
             PIN_SafeCopy(RAXValue, buf, fullSize);
 

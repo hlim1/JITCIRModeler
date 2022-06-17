@@ -257,6 +257,10 @@ void insInstrumentation(INS ins, void *v) {
 
         // Analyze recorded instruction information, i.e., src. registers, dest. registers, and memory, etc.
         if(!INS_IsSyscall(ins)) {
+
+            // DEBUG
+            // cout << "Opcode: " << INS_Opcode(ins) << ", Mnemonic: " << INS_Mnemonic(ins) << endl;
+
             bool isAnalyze = false;
             if(INS_HasFallThrough(ins)) {
                 INS_InsertCall(
