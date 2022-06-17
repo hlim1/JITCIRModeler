@@ -190,19 +190,12 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
 
-    // DEBUG
-    cout << "node: " << dec << node->id << "; " << hex << node->intAddress << "; " << node->opcode << endl;
-
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
     assert (node->blockHead != ADDRINT_INVALID);
 
     // Get node size.
     node->size = get_size(node->blockHead, node, system_id);
-
-    // DEBUG
-    cout << "   - size: " << dec << node->size << endl;
-
     assert (node->size != ADDRINT_INVALID);
     assert (node->size < MAX_NODE_SIZE);
 
