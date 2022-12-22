@@ -2,7 +2,7 @@
  * ShadowMemory.h
  *
  *  Created on: Jun 9, 2016
- *      Author: Jon
+ *      Author: Anon
  */
 
 #ifndef SHADOWMEMORY_H_

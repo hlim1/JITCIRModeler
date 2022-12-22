@@ -26,6 +26,7 @@ using std::map;
 using std::string;
 using std::hex;
 using std::dec;
+using std::ostringstream;
 
 // This will need to be adjusted if there are more than 16 threads, 
 // but this is faster than Pin's TLS
@@ -65,8 +66,8 @@ UINT8 *dataBufPos = dataBuf;
 #error "Unsupported Architecture"
 #endif
 
-// Thread local storage structure (for those unfamiliar with C++ structs, they are essentially classes 
-// with different privacy rules so you can have functions)
+// Thread local storage structure (for those unfamiliar with C++ structs, they are essentially
+// classes with different privacy rules so you can have functions)
 struct ThreadData {
     ThreadData() :
             eventId(0), pos(NULL), memWriteAddr(0), memWriteSize(0), destRegs(NULL), destFlags(0), print(false),
@@ -108,8 +109,15 @@ const ADDRINT WIPEMEM = 0;
 
 // Strcut for keeping the instruction id.
 struct Instruction {
+    Instruction() : id(0) {}
     int id;                   // instruction id.
 } instruction;
+
+// Struct for holding the target instruction info.
+struct TargetInst {
+    UINT32 fnId;               // function id.
+    UINT8* binary;             // instruction opcode & operand.
+};
 
 // Struct for source register information.
 struct RegInfo {
@@ -147,6 +155,9 @@ map<ADDRINT,MWInst> targetMWs;  // Write location address to MWInst object (Targ
 map<int,RegInfo> targetSrcRegs;  // targetSrcRegsKey to RegInfo object.
 map<int,RegInfo> targetDesRegs;  // targetDesRegsKey to RegInfo object.
 
+map<int,UINT32> fnCallRet;
+int fnCallRetId = 0;
+
 RegInfo srcRegsHolder[MAX_REGS];
 RegInfo desRegsHolder[MAX_REGS];
 int srcRegSize = 0;
@@ -168,7 +179,7 @@ bool is_former_range = false;
  *  - system_id (UIN32): JIT compiler system ID.
  * Output: None.
  **/
-void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
+void constructModeledIRNode(UINT32 fnId, UINT8* binary, ADDRINT instSize, UINT32 system_id) {
 
     // Keep a track of system ID in the IR, if not populated already.
     if (IRGraph->systemId == UINT32_INVALID) {
@@ -178,10 +189,29 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     // Create a new node object and populate it with data.
     Node *node = new Node();
     node->id = IRGraph->lastNodeId;
-    
+
     // Get node address.
     node->intAddress = get_node_address(fnId, system_id);
     assert (node->intAddress != ADDRINT_INVALID);
+
+    // Get opcode of a node.
+    ADDRINT *opcode;
+    opcode = get_opcode(node, system_id, fnId);
+    node->opcode = opcode[0];
+    node->opcodeAddress = opcode[1];
+    node->id2Opcode[instruction.id] = opcode[0];
+
+    // New node allocation function(s) do "not" always generate nodes.
+    // It is true that the function(s) is called to allocate the new node,
+    // but the function itself also performs several different checks whether
+    // the allocation is really needed or not. If it evaluates (for whatever
+    // reason) the allocation is not needed, it simply returns without any
+    // node allocation. This we can check by whether the opcode was assigned
+    // to node or not. If no opcode was assiggned, then we ignore to construct
+    // the node model and return as well.
+    if (node->opcode == ADDRINT_INVALID and !node->is_nonIR) {
+        return;
+    }
 
     // Get block head address.
     node->blockHead = get_node_block_head(node->intAddress, system_id);
@@ -196,21 +226,6 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     node->blockTail = node->blockHead + node->size;
     assert (node->blockTail != ADDRINT_INVALID);
 
-    // Get opcode of a node.
-    ADDRINT *opcode;
-    opcode = get_opcode(node, system_id, fnId);
-    node->opcode = opcode[0];
-    node->opcodeAddress = opcode[1];
-    // Check the opcode existence only for those nodes' is_nonIR is set to false.
-    if (!node->is_nonIR && node->opcode == ADDRINT_INVALID) {
-        string fn = strTable.get(fnId);
-        cerr << "ERROR: Opcode is Missing!";
-        cerr << "Node ID: " << dec << node->id << ". ";
-        cerr << "Function Name: " << fn << ". ";
-        cerr << "System ID: " << dec << system_id << endl;
-        exit(1);
-    }
-
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
 
@@ -219,6 +234,9 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
     IRGraph->nodes[IRGraph->lastNodeId] = node;
     IRGraph->nodeAddrs[IRGraph->lastNodeId] = node->intAddress;
     IRGraph->lastNodeId += 1;
+
+    // Update the log with CREATE access.
+    updateLogInfo(node, fnId, binary, instSize, CREATE);
 
     // Reset temporary value holders.
     currentRaxValSize = 0;
@@ -242,6 +260,8 @@ void constructModeledIRNode(UINT32 fnId, UINT32 system_id) {
 ADDRINT get_node_address(UINT32 fnId, UINT32 system_id) {
 
     ADDRINT address = ADDRINT_INVALID;
+
+    assert (currentRaxValSize > 0);
 
     address = uint8Toaddrint(currentRaxVal, currentRaxValSize);
 
@@ -359,7 +379,7 @@ ADDRINT *get_opcode_jsc(Node *node) {
 }
 
 /**
- * Function: get_opcode_spm_
+ * Function: get_opcode_spm
  * Description: This function analyzes collected memory write information to
  *  retrieve the SPM IR node opcode and address where opcode is stored.
  * Input:
@@ -380,14 +400,18 @@ ADDRINT *get_opcode_spm(Node *node, UINT32 fnId) {
     // data only if the current node is not a block node. Otherwise, we set is_nonIR to true.
     if (!fnInNonIRAllocs(fn)) {
         map<ADDRINT,MWInst>::iterator it;
-        for (it = writes.begin(); it != writes.end(); ++it) {
+        for (it = targetMWs.begin(); it != targetMWs.end(); ++it) {
             MWInst write = it->second;
-            if (
-                    write.valueSize == SPM_OPCODE_SIZE &&
-                    (write.location > node->blockHead && write.location < node->blockTail)
-            ) {
-                opcode[0] = write.value;
-                opcode[1] = write.location;
+            if (write.valueSize == SPM_OPCODE_SIZE) {
+                for (int i = 0; i < write.regSize; i++) {
+                    if ((write.srcRegs[i]).value == node->intAddress) {
+                        opcode[0] = write.value;
+                        opcode[1] = write.location;
+                        break;
+                    }
+                }
+            }
+            if (opcode[0] != ADDRINT_INVALID) {
                 break;
             }
         }
@@ -586,6 +610,24 @@ UINT8* addrintTouint8(ADDRINT target, UINT32 size) {
     memcpy(to, &target, size);
 
     return to;
+}
+
+/**
+ * Function: uint8Tostring
+ * Description: This function converts array of UINT8 type values to string.
+ * Input:
+ *  - target (ADDRINT): Target value to convert to string type.
+ *  - size (UINT32): Size of the target value.
+ * Output: String type converted value.
+ **/
+string uint8Tostring(UINT8* target, ADDRINT size) {
+    ostringstream strStream;
+    for (int i = size-1; i > 0; i--) {
+        strStream << hex << (int)target[i] << " ";
+    }
+    strStream << hex << (int)target[0];
+
+    return strStream.str();
 }
 
 /**
@@ -841,10 +883,21 @@ ADDRINT get_size_spm(ADDRINT address) {
                     break;
                 }
             }
+            if (size == ADDRINT_INVALID) {
+                for (it2 = targetDesRegs.begin(); it2 != targetDesRegs.end(); ++it2) {
+                    RegInfo desReg = it2->second;
+                    if (
+                            desReg.instOp == srcReg.instOp && 
+                            desReg.value - srcReg.value < MAX_NODE_SIZE
+                    ) {
+                        size = desReg.value - srcReg.value;
+                        break;
+                    }
+                }
+            }
             break;
         }
     }
-    assert (size != ADDRINT_INVALID);
 
     return size;
 }
@@ -1055,13 +1108,38 @@ void printUINT8(UINT8* arr, UINT32 size) {
 
     assert (size > 0);
 
-    for (UINT32 i = size-1; i > 0; i--) {
-        printf("%02x", arr[i]);
+    for (int i = size-1; i > 0; i--) {
+        printf("%02x ", arr[i]);
     }
     printf("%02x\n", arr[0]);
 }
 
 // =============================================================
+
+/**
+ * Function: recordFnCallRet
+ * Description: Records function call-return sequences. The recording starts from the
+ * first JIT compiler execution instruction.
+ * Input:
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
+ */
+void recordFnCallRet(UINT32 fnId) {
+
+    if (fnCallRetId == 0 && fnId != 0) {
+        fnCallRet[fnCallRetId] = fnId;
+        fnCallRetId++;
+    }
+    else {
+        assert(fnCallRetId >= 0);
+        map<int,UINT32>::iterator it;
+        it = fnCallRet.find(fnCallRetId);
+        if (fnCallRet[fnCallRetId-1] != fnId && fnId != 0 && it == fnCallRet.end()) {
+            fnCallRet[fnCallRetId] = fnId;
+            fnCallRetId++;
+        }
+    }
+}
 
 /**
  * Function: recordSrcRegs
@@ -1138,7 +1216,7 @@ void PIN_FAST_ANALYSIS_CALL recordDestRegs(THREADID tid, const RegVector *destRe
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None
  **/
-void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
+void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
 
     string fn = strTable.get(fnId);
 
@@ -1161,26 +1239,9 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
     // Mark that the tool needs to update the register.
     populate_regs = true;
 
-    // Check if the current memory location belongs to any of existing node.
-    ADDRINT nodeId = ADDRINT_INVALID;
-    bool is_node_block = false;
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        Node *node = IRGraph->nodes[i];
-        // Check if the memory read access happens to some node block.
-        if (
-                (readAddr >= node->blockHead && readAddr < node->blockTail) ||
-                (valueInt >= node->blockHead && valueInt < node->blockTail)
-        ) {
-            nodeId = node->id;
-            is_node_block = true;
-            break;
-        }
-    }
-    // If the access was happened, update the node's access log.
-    if (is_node_block) {
-        Node *accessed =  IRGraph->nodes[nodeId];
-        updateLogInfo(accessed, fnId, EVALUATE);
-    }
+    // Check if the current memory location belongs to any of existing node,
+    // i.e., node evaluation.
+    nodeEvaluation(readAddr, valueInt, fnId, binary, instSize);
 
     PIN_MutexUnlock(&dataLock);
 }
@@ -1195,17 +1256,19 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId) {
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  **/
-void check2MemRead(ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId) {
-    checkMemRead(readAddr1, readSize, fnId);
-    checkMemRead(readAddr2, readSize, fnId);
+void check2MemRead(
+        ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize)
+{
+    checkMemRead(readAddr1, readSize, fnId, binary, instSize);
+    checkMemRead(readAddr2, readSize, fnId, binary, instSize);
 }
 
 /**
  * Function: recordMemWrite
- * Description: We can only get the address of a memory write from PIN before an instruction executes.
- *  since we need this information after the instruction executes (so we can get the new values), we need
- *  to record the address and size of the memory write in thread local storage so we can get the information
- *  later.
+ * Description: We can only get the address of a memory write from PIN before an instruction
+ * executes. Since we need this information after the instruction executes (so we can get the new
+ * values), we need to record the address and size of the memory write in thread local storage so
+ * we can get the information later.
  * Input:
  *  - tid (THREADID): Thread ID struct object.
  *  - addr (ADDRINT): Memory write location address.
@@ -1239,7 +1302,7 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
  **/
 bool analyzeRecords(
         THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode,
-        bool is_create, UINT32 system_id
+        bool is_create, UINT8* binary, ADDRINT instSize, UINT32 system_id
 ) {
 
     ThreadData &data = tls[tid];
@@ -1268,7 +1331,7 @@ bool analyzeRecords(
             assert (i < MAX_REGS);
             RegInfo srcReg = srcRegsHolder[i];
             assert(targetSrcRegs.size()+1 < targetSrcRegs.max_size());
-            targetSrcRegs[targetSrcRegsKey] =  srcReg;
+            targetSrcRegs[targetSrcRegsKey] = srcReg;
             targetSrcRegsKey++;
         }
         for (int j = 0; j < desRegSize; j++) {
@@ -1282,7 +1345,7 @@ bool analyzeRecords(
 
     // If the instruction has memory write, analyze memory write, e.g., MW[..]=...
     if(data.memWriteSize != 0) {
-        analyzeMemWrites(tid, fnId, is_former_range, system_id);
+        analyzeMemWrites(tid, fnId, is_former_range, binary, instSize, system_id);
         data.memWriteSize = 0; 
     }
 
@@ -1350,6 +1413,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
             PIN_SafeCopy(RAXValue, buf, fullSize);
 
             if (checkRAXValue(RAXValue)) {
+                assert (fullSize > 0);
                 PIN_SafeCopy(currentRaxVal, buf, fullSize);
                 currentRaxValSize = fullSize;
             }
@@ -1375,12 +1439,22 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
 }
 
 /**
- * Function:
- * Description:
+ * Function: analyzeMemWrites
+ * Description: This function analyzes the memory writes of current instruction.
+ *  In addition, it calls trackOptimization function to further analyze the memory writes
+ *  to seek for potential optimization event happeneing to the IR.
  * Input:
- * Output:
+ *  - tid (THREADID): Thread ID struct object.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - is_range (bool): Boolean flag to indicate whether the currently analyzing instruction
+ *    is within the range of node formation or not.
+ *  - system_id (UINT32): JIT compiler system ID. 
+ * Output: None.
  **/
-void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id) {
+void analyzeMemWrites(
+        THREADID tid, UINT32 fnId, bool is_range, UINT8* binary,
+        ADDRINT instSize, UINT32 system_id) 
+{
 
     ThreadData &data = tls[tid];
 
@@ -1433,17 +1507,27 @@ void analyzeMemWrites(THREADID tid, UINT32 fnId, bool is_range, UINT32 system_id
 
     // If there are IR nodes, analyzes and extracts, if exists, optimization information.
     if (IRGraph->lastNodeId > 0) {
-        trackOptimization(write.location, write.value, data.memWriteSize, fnId, system_id);
+        trackOptimization(write.location, write.value, data.memWriteSize, fnId, binary, instSize, system_id);
     }
 }
 
 /**
- * Function:
- * Description:
+ * Function: trackOptimization
+ * Description: This function analyze the passed information extracted from the instruction to
+ *  identify whether the instruction is an event of IR optimization. If it is, then the function
+ *  updates the IR model and the optimization history holder to keep a record of optimization.
+ *  This function is called only in the analyzeMemWrites function.
  * Input:
- * Output:
+ *  - location (ADDRINT): Memory location where value is being written to.
+ *  - value (ADDRINT): Value that is being written to the location.
+ *  - valueSize (ADDRINT): Size of the written value.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - system_id (UINT32): JIT compiler system ID. 
+ * Output: None.
  **/
-void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id) {
+void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId,
+        UINT8* binary, ADDRINT instSize, UINT32 system_id) 
+{
 
     // Check if the current memory location belongs to any one of existing node.
     ADDRINT nodeId = ADDRINT_INVALID;
@@ -1473,28 +1557,28 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         if (edge_idx != INT_INVALID) {
             // If value is '0', which is to wipe out the memory location, handle edge 'removal'.
             if (value == WIPEMEM) {
-                edgeRemoval(node, edge_idx, fnId);
+                edgeRemoval(node, edge_idx, fnId, binary, instSize);
             }
             // If value is one of the existing nodes, handle edge 'replace'.
             else if (value_id != INT_INVALID) {
-                edgeReplace(node, value_id, edge_idx, fnId);
+                edgeReplace(node, value_id, edge_idx, fnId, binary, instSize);
             }
         }
         // If the location is not occupied edge, but the value is a node, handle edge 'addition'.
         else if (edge_idx == INT_INVALID && value_id != INT_INVALID) {
-            edgeAddition(node, location, value_id, fnId);
+            edgeAddition(node, location, value_id, fnId, binary, instSize);
         }
         // If the location belongs to some node block, but it's not an edge and the value is not a node.
         else if (edge_idx == INT_INVALID && value_id == INT_INVALID) {
             // Node's are being destroyed and the location is being wiped by writing '0'.
             // We check such pattern in the instruction and mark the node dead.
             if (is_node_addr && value == WIPEMEM) {
-                nodeDestroy(node, fnId);
+                nodeDestroy(node, fnId, binary, instSize);
             }
             // If the write is happening at node address locaiton, then check whether it's an opcode
             // update or not and update the opcode, if yes.
             else if (is_node_addr && value != WIPEMEM) {
-                opcodeUpdate(node, location, value, valueSize, system_id, fnId);
+                opcodeUpdate(node, location, value, valueSize, system_id, fnId, binary, instSize);
             }
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
@@ -1504,7 +1588,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 // a value with an assmption is that the address's size is 8. This is not a good approach
                 // so we need to update it with more appropriate way.
                 if (is_direct && valueSize < 8) {
-                    directValueWrite(node, location, value, fnId); 
+                    directValueWrite(node, location, value, fnId, binary, instSize); 
                 }
                 else {
                     // TODO: Need to handle indirect (pointing to non-ir object) assignment.
@@ -1515,54 +1599,54 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
 }
 
 /**
- * Function:
- * Description:
+ * Function: updateLogInfo
+ * Description: This function keeps track of the optimization and access history (log).
+ *  It updates the history holder of both in the node and IR graph models.
  * Input:
- * Output:
+ *  - node (Node*): IR node that was accessed.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ *  - accesType (Access): Type of access to the node.
+ * Output: None.
  **/
-void updateLogInfo(Node *node, UINT32 fnId, Access accessType) {
+void updateLogInfo(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType) {
 
-    // Retrieve the function name from the table.
-    string fnName = strTable.get(fnId);
+    // Create a new instInfo object and update it.
+    InstInfo instInfo;
+    instInfo.fnCallRetId = fnCallRetId;
+    instInfo.fnId = fnId;
+    instInfo.binary = new UINT8[instSize];
+    memcpy(instInfo.binary, binary, instSize);
+    instInfo.instSize = instSize;
+    instInfo.accessType = accessType;
 
-    // Create a new FnInfo object and update it.
-    FnInfo fnInfo;
-    fnInfo.fnId = fnId;
-    fnInfo.accessType = accessType;
-
-    // Avoid adding duplicate fnInfo one after another.
-    if ((node->fnInfo).empty() || !isSameAccess(node, fnInfo)) {
-        // Update the node's function info. map.
-        assert((node->fnInfo).size()+1 < (node->fnInfo).max_size());
-        node->fnInfo[IRGraph->fnOrderId] = fnInfo;
-        node->lastInfoId = IRGraph->fnOrderId;
-
-        // Update IR's function order id and map.
-        assert((IRGraph->fnId2Name).size()+1 < (IRGraph->fnId2Name).max_size());
-        IRGraph->fnId2Name[fnId] = fnName;
-        IRGraph->fnOrderId++;
-    }
+    // Update the node's function info. map.
+    assert((node->instInfo).size()+1 < (node->instInfo).max_size());
+    node->instInfo[instruction.id] = instInfo;
+    node->lastInfoId = instruction.id;
 }
 
 /**
- * Function:
- * Description:
+ * Function: isSameAccess
+ * Description: This function checks whether the currently observed node access is the same
+ *  as the last node access (the same node and same access type) or not.
  * Input:
- * Output:
+ *  - node (Node*): IR node that was accessed.
+ *  - fnInfo (instInfo): Information of the function and access type to the node.
+ * Output: true if same, false otherwise.
  **/
-bool isSameAccess(Node *node, FnInfo fnInfo) {
+bool isSameAccess(Node *node, InstInfo instInfo) {
 
     bool is_same = false;
     
     // Get the node's last fnInfo.
-    FnInfo latest = node->fnInfo[node->lastInfoId];
+    InstInfo latest = node->instInfo[node->lastInfoId];
 
     // If the currently analyzing fnInfo's fnId and accessType are
     // equal to the node's last fnInfo, set is_same to true.
     // Otherwise, false.
     if (
-            latest.fnId == fnInfo.fnId
-            and latest.accessType == fnInfo.accessType
+            latest.fnCallRetId == instInfo.fnCallRetId
+            && latest.accessType == instInfo.accessType
 
     ) {
         is_same = true;
@@ -1575,12 +1659,16 @@ bool isSameAccess(Node *node, FnInfo fnInfo) {
 }
 
 /**
- * Function:
- * Description:
+ * Function: edgeRemoval
+ * Description: This function removes a node from edge in the IR model if edge removal
+ *  optimization event's been observed. Then, it updates the edge owner node's history.
  * Input:
+ *  - node (Node*): Owner node of the edge, which removal optimization was performed.
+ *  - edge_idx (int): Index of the edge that is target to be removed in the model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output:
  **/
-void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
+void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
 
     Node *target = node->edgeNodes[edge_idx];
     // In some cases, I see an instruction that cleans memory location where it's alreay
@@ -1590,23 +1678,28 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId) {
     // this case by checking that the returned value from the earlier line is NOT NULL.
     if (target != NULL) {
         // Update node's 'remove' optimization information.
-        assert((node->fnOrder2remNodeId).size()+1 < (node->fnOrder2remNodeId).max_size());
-        node->fnOrder2remNodeId[IRGraph->fnOrderId] = target->id;
+        assert((node->instOrder2remNodeId).size()+1 < (node->instOrder2remNodeId).max_size());
+        node->instOrder2remNodeId[instruction.id] = target->id;
         // Set the removed edge to NULL.
         assert(edge_idx < node->numberOfEdges);
         node->edgeNodes[edge_idx] = NULL;
         // Update function log information.
-        updateLogInfo(node, fnId, REMOVAL);
+        updateLogInfo(node, fnId, binary, instSize, REMOVAL);
     }
 }
 
 /**
- * Function:
- * Description:
+ * Function: edgeReplace
+ * Description: This function replaces nodes from edge in the IR model if edge replacement
+ *  optimization event's been observed. Then, it updates the edge owner node's history.
  * Input:
- * Output:
+ *  - node (Node*): Owner node of the edge, which replacement optimization was performed.
+ *  - value_id (int):  Value ID is equal to one of the node's ID in the IR model.
+ *  - edge_idx (int): Index of the edge that is target to be replaced in the model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
-void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
+void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
 
     assert(value_id < IRGraph->lastNodeId);
     Node *to = IRGraph->nodes[value_id];
@@ -1622,58 +1715,71 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId) {
         replacedInfo.nodeIdFrom = INT_INVALID;
         replacedInfo.nodeIdTo = to->id;
     }
-    assert((node->fnOrder2repInfo).size()+1 < (node->fnOrder2repInfo).max_size());
-    node->fnOrder2repInfo[IRGraph->fnOrderId] = replacedInfo;
+    assert((node->instOrder2repInfo).size()+1 < (node->instOrder2repInfo).max_size());
+    node->instOrder2repInfo[instruction.id] = replacedInfo;
     // Replace existing edge node with the node with 'value_id'.
     assert(edge_idx < node->numberOfEdges);
     node->edgeNodes[edge_idx] = to;
     // Update function log information.
-    updateLogInfo(node, fnId, REPLACE);
+    updateLogInfo(node, fnId, binary, instSize, REPLACE);
 }
 
 /**
- * Function:
- * Description:
+ * Function: edgeAddition
+ * Description: This function adds new edge to a node if edge additiion optimization event's
+ *  been optimization. Then, it updates the edge owner node's history.
  * Input:
- * Output:
+ *  - node (Node*): Owner node of the edge, which add optimization was performed.
+ *  - location (ADDRINT): Address of location where the value is written.
+ *  - value_id (int):  Value ID is equal to one of the node's ID in the IR model.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
-void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId) {
+void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
 
     assert(value_id < IRGraph->lastNodeId);
     Node *adding = IRGraph->nodes[value_id];
     // Update node's 'add' optimization information.
-    assert((node->fnOrder2addNodeId).size()+1 < (node->fnOrder2addNodeId).max_size());
-    node->fnOrder2addNodeId[IRGraph->fnOrderId] = adding->id;
+    assert((node->instOrder2addNodeId).size()+1 < (node->instOrder2addNodeId).max_size());
+    node->instOrder2addNodeId[instruction.id] = adding->id;
     // Add an edge from 'this' node to the node with 'value_id'. 
     assert (node->numberOfEdges < MAX_NODES);
     node->edgeNodes[node->numberOfEdges] = adding;
     node->edgeAddrs[node->numberOfEdges] = location;
     node->numberOfEdges++;
     // Update function log information.
-    updateLogInfo(node, fnId, ADDITION);
+    updateLogInfo(node, fnId, binary, instSize, ADDITION);
 }
 
 /**
- * Function:
- * Description:
+ * Function: nodeDestroy
+ * Description: This function set node's alive field to false if node destroy optimizaion
+ *  event's been observed. Then, it updates the destroyed node's history.
  * Input:
- * Output:
+ *  - node (Node*): Destroyed node.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
-void nodeDestroy(Node *node, UINT32 fnId) {
+void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
 
     // Simply set node->alive to false to indicate the node's been destroyed.
     node->alive = false;
     // Update function log information.
-    updateLogInfo(node, fnId, KILL);
+    updateLogInfo(node, fnId, binary, instSize, KILL);
 }
 
 /**
- * Function:
- * Description:
+ * Function: directValueWrite
+ * Description: This function observes value writing to a node and updates the node model,
+ *  which the value was written. Note that this function only handle direct write.
  * Input:
- * Output:
+ *  - node (Node*): Node where the value's been written.
+ *  - location (ADDRINT): Address where the value is been written.
+ *  - value (ADDRINT): Written value.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
+ * Output: None.
  **/
-void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) {
+void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
 
     // Compute the offset first.
     ADDRINT offset = location - node->blockHead;
@@ -1712,22 +1818,29 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId) 
     }
 
     if (is_written) {
-        assert((node->fnOrder2dirValOpt).size()+1 < (node->fnOrder2dirValOpt).max_size());
-        node->fnOrder2dirValOpt[IRGraph->fnOrderId] = directValOpt;
+        assert((node->instOrder2dirValOpt).size()+1 < (node->instOrder2dirValOpt).max_size());
+        node->instOrder2dirValOpt[instruction.id] = directValOpt;
         // Update function log information.
-        updateLogInfo(node, fnId, VALUE_CHANGE);
+        updateLogInfo(node, fnId, binary, instSize, VALUE_CHANGE);
     }
 }
 
 /**
- * Function:
- * Description:
+ * Function: opcodeUpdate
+ * Description: This function updates the node's opcode if opcode update optimization
+ *  has been observed. Then, it updates the node's history.
  * Input:
+ *  - node (Node*): Node that opcode is been updated.
+ *  - location (ADDRINT): Address where value is written.
+ *  - value (ADDRINT): Value written. Likely to be a new opcode.
+ *  - valueSize (ADDRINT): Size of value.
+ *  - system_id (UINT32): JIT compiler system ID.
+ *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output:
  **/
 void opcodeUpdate(
         Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, 
-        UINT32 system_id, UINT32 fnId) 
+        UINT32 system_id, UINT32 fnId, UINT8* binary, ADDRINT instSize) 
 {
 
     // Check if the memory write value is an opcode.
@@ -1737,14 +1850,74 @@ void opcodeUpdate(
     // If update opcode value exists and the value is not equal to the current node's opcode,
     // update the node's opcode and information tracking variables.
     if (opcode[0] != ADDRINT_INVALID && opcode[0] != node->opcode) {
-        node->opcode = opcode[0];
-        node->opcodeAddress = opcode[1];
+        // We don't update the main opcode.
+        // We track only the optimization (update) information.
         // Update opcode update information.
-        node->opcodeId++;
         assert((node->id2Opcode).size()+1 < (node->id2Opcode).max_size());
-        node->id2Opcode[node->opcodeId] = opcode[0];
+        node->id2Opcode[instruction.id] = opcode[0];
         // Update function log information.
-        updateLogInfo(node, fnId, OP_UPDATE);
+        updateLogInfo(node, fnId, binary, instSize, OP_UPDATE);
+    }
+}
+
+/**
+ * Function: nodeEvaluation
+ * Description: This function identifies whether the address that the instruction performs memory
+ *  read belong to any existing node or not. If it does, it extracts the information and stores it to
+ *  the node.
+ * Input:
+ *  - readAddr (ADDRINT): memory address where memory read happens.
+ *  - valueInt (ADDRINT): value in the location.
+ *  - fnId (UINT32): function id.
+ *  - binary (UINT8*): instruction binary, i.e., opcode & operands.
+ *  - instSize (ADDRINT): size of the instruction.
+ *  Output:
+ **/
+void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+    ADDRINT nodeId = ADDRINT_INVALID;
+    bool is_node_block = false;
+    for (int i = 0; i < IRGraph->lastNodeId; i++) {
+        Node *node = IRGraph->nodes[i];
+        // Check if the memory read access happens to some node block.
+        // readAddr: Location where reading the value from.
+        // valueInt: Value read from the readAddr (location).
+        if (
+                (readAddr >= node->blockHead && readAddr < node->blockTail) ||
+                (valueInt >= node->blockHead && valueInt < node->blockTail)
+        ) {
+            nodeId = node->id;
+            is_node_block = true;
+            // Compute the accessed (evaluated) node offset.
+            ADDRINT offset = ADDRINT_INVALID;
+            if (readAddr >= node->blockHead && readAddr < node->blockTail) {
+                offset = readAddr - node->blockHead;
+            }
+            else {
+                offset = valueInt - node->blockHead;
+            }
+            assert (offset != ADDRINT_INVALID);
+            // Update the node's instOrder2offset with the computed offset.
+            Offset2Value offset2value;
+            offset2value.offset = offset;
+
+            // THIS MAY HURT THE PERFORMACE SIGNIFICANTLY. REMOVE IF IT DOES.
+            map<ADDRINT,MWInst>::iterator it;
+            it = writes.find(valueInt);
+            if (it != writes.end()) {
+                offset2value.value = writes[valueInt].value;
+            }
+            else {
+                offset2value.value = valueInt;
+            }
+
+            (IRGraph->nodes[i])->instOrder2offVal[instruction.id] = offset2value;
+            break;
+        }
+    }
+    // If the access was happened, update the node's access log.
+    if (is_node_block) {
+        Node *accessed =  IRGraph->nodes[nodeId];
+        updateLogInfo(accessed, fnId, binary, instSize, EVALUATE);
     }
 }
 
@@ -1753,7 +1926,6 @@ void opcodeUpdate(
  * Description: Get a buffer for the file that is guaranteed to fit the given size. Must provide the file's
  *  buffer and the current position in that buffer. 
  * Side Effects: Writes to file if there is not enough space in buffer
- * Input:
  * Output: the position in the buffer that it is safe to write to
  **/
 UINT8 *getFileBuf(UINT32 size, UINT8 *fileBuf, UINT8 *curFilePos, FILE *file) {
@@ -1769,7 +1941,6 @@ UINT8 *getFileBuf(UINT32 size, UINT8 *fileBuf, UINT8 *curFilePos, FILE *file) {
 /**
  * Function: startTrace
  * Description: Function used to mark when to start tracing.
- * Input:
  * Output: None
  **/
 void startTrace() {
@@ -1798,7 +1969,6 @@ UINT8 *printDataLabel(UINT8 *pos, UINT64 eventId) {
  *  address, value and size. Additionally, if sizePos is provided, it set the sizePos's value to
  *  the location of size in the buffer.
  * Assumptions: There is enough space in the buffer
- * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printMemData(UINT8 *pos, UINT16 size, ADDRINT addr, UINT8 *val, UINT8 **sizePos) {
@@ -1827,7 +1997,6 @@ UINT8 *printMemData(UINT8 *pos, UINT16 size, ADDRINT addr, UINT8 *val, UINT8 **s
  * Function: printExceptionEvent
  * Description: Writes an exception event into the location specified by pos
  * Assumptions: There is enough space in the buffer
- * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printExceptionEvent(UINT8 *pos, ExceptionType eType, INT32 info, THREADID tid, ADDRINT addr) {
@@ -1861,7 +2030,6 @@ UINT8 *printExceptionEvent(UINT8 *pos, ExceptionType eType, INT32 info, THREADID
  *  It also fills in valBuf with the value of the register
  * Assumptions: There is enough space in the buffer, valBuf is at least 64 bytes
  * Side Effects: Fills in valBuf with register value
- * Input:
  * Output: New current position in buffer
  **/
 UINT8 *printDataReg(THREADID tid, UINT8 *pos, LynxReg lReg, const CONTEXT *ctxt, UINT8 *valBuf) {
@@ -1888,7 +2056,6 @@ UINT8 *printDataReg(THREADID tid, UINT8 *pos, LynxReg lReg, const CONTEXT *ctxt,
 /**
  * Function: checkInitializedStatus
  * Description: Checks to see if we have printed out the initial status of a thread.
- * Input:
  * Output: True if initialized, false otherwise
  **/
 bool checkInitializedStatus(THREADID tid) {
@@ -1898,7 +2065,6 @@ bool checkInitializedStatus(THREADID tid) {
 /**
  * Function: initThread
  * Description: Records the initial state of a thread in the trace
- * Input:
  * Output: None
  **/
 void initThread(THREADID tid, const CONTEXT *ctx) {
@@ -1913,7 +2079,6 @@ void initThread(THREADID tid, const CONTEXT *ctx) {
 /**
  * Function: initIns
  * Description: Initializes the thread local storage for a new instruction. 
- * Input:
  * Output: None
  **/
 void PIN_FAST_ANALYSIS_CALL initIns(THREADID tid) {
@@ -1951,7 +2116,6 @@ void PIN_FAST_ANALYSIS_CALL recordSrcId(THREADID tid, UINT32 srcId) {
  * Function: contextChange
  * Description: Records information in a trace if an exception occurred, resulting in a context change. 
  *  Note, this is the only place that event ids are adjusted due to an exception event.
- * Input:
  * Output: None
  **/
 void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fromCtx, CONTEXT *toCtx, INT32 info, void *v) {
@@ -1985,7 +2149,6 @@ void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fr
 /**
  * Function: recordRegState
  * Description: Records the register state for the current architecture in data file.
- * Input:
  * Output: None
  **/
 void recordRegState(THREADID tid, const CONTEXT *ctxt) {
@@ -2055,7 +2218,6 @@ void recordRegState(THREADID tid, const CONTEXT *ctxt) {
  * Description: Call this when another thread starts so we can accurately track the number of threads 
  *  the program has. We also need to initialize the thread local storage for the new thread. Note, we 
  *  check here to make sure we are still within maxThreads
- * Input:
  * Output: None
  **/
 VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
@@ -2081,7 +2243,6 @@ VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
  * Function: setupFile
  * Description: Opens and sets up any output files. Note, since this is an ASCII trace, it will setup 
  * trace.out according to the Data Ops trace file format.
- * Input:
  * Output: None
  **/
 void setupFile(UINT16 infoSelect) {
@@ -2170,10 +2331,10 @@ void setupFile(UINT16 infoSelect) {
 // ===========================================================
 
 /**
- * Function:
- * Description:
- * Input:
- * Output:
+ * Function: write2Json
+ * Description: This function writes modeled IR to a JSON file in formatted structure.
+ * Input: None.
+ * Output: None.
  **/
 void write2Json() {
     ofstream jsonFile;
@@ -2182,12 +2343,13 @@ void write2Json() {
     int counter = 0;
 
     jsonFile << "{" << endl;
+    jsonFile << "   \"is_ir\": true," << endl;
     jsonFile << "   \"nodes\": [" << endl;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
         jsonFile << "       {" << endl;
         jsonFile << "           \"id\": " << dec << node->id << "," << endl; 
-        jsonFile << "           \"alive\": "; 
+        jsonFile << "           \"alive\": ";
         if (node->alive) {
             jsonFile << "true," << endl;
         }
@@ -2237,71 +2399,63 @@ void write2Json() {
         counter = 0;
         jsonFile << "           \"opcode_update\": {" << endl;
         map<int,ADDRINT>::iterator itOpUpdate;
-        for (itOpUpdate = node->id2Opcode.begin(); itOpUpdate != node->id2Opcode.end(); ++itOpUpdate) {
-            jsonFile << "               \"" << hex << itOpUpdate->first << "\":";
-            jsonFile << "\"" << itOpUpdate->second << "\"";
-            if (counter < int((node->id2Opcode).size())-1) {
+        for (itOpUpdate = node->id2Opcode.begin(); itOpUpdate != node->id2Opcode.end();) {
+            jsonFile << "               \"" << dec << itOpUpdate->first << "\":";
+            jsonFile << "\"" << hex << itOpUpdate->second << "\"";
+            if (++itOpUpdate != node->id2Opcode.end()) {
                 jsonFile << "," << endl;
             }
             else {
                 jsonFile << endl;
             }
-            counter++;
         }
         jsonFile << "           }," << endl;
         // Write added optimization information.
-        counter = 0;
         jsonFile << "           \"added\": {" << endl;
         map<int,int>::iterator itAdd;
-        for (itAdd = node->fnOrder2addNodeId.begin(); itAdd != node->fnOrder2addNodeId.end(); ++itAdd) {
+        for (itAdd = node->instOrder2addNodeId.begin(); itAdd != node->instOrder2addNodeId.end();) {
             jsonFile << "               \"" << dec << itAdd->first << "\":" << itAdd->second;
-            if (counter < int((node->fnOrder2addNodeId).size())-1) {
+            if (++itAdd != node->instOrder2addNodeId.end()) {
                 jsonFile << "," << endl;
             }
             else {
                 jsonFile << endl;
             }
-            counter++;
         }
         jsonFile << "           }," << endl;
         // Write removed optimization information.
-        counter = 0;
         jsonFile << "           \"removed\": {" << endl;
         map<int,int>::iterator itRem;
-        for (itRem = node->fnOrder2remNodeId.begin(); itRem != node->fnOrder2remNodeId.end(); ++itRem) {
+        for (itRem = node->instOrder2remNodeId.begin(); itRem != node->instOrder2remNodeId.end();) {
             jsonFile << "               \"" << dec << itRem->first << "\":" << itRem->second;
-            if (counter < int((node->fnOrder2remNodeId).size())-1) {
+            if (++itRem != node->instOrder2remNodeId.end()) {
                 jsonFile << "," << endl;
             }
             else {
                 jsonFile << endl;
             }
-            counter++;
         }
         jsonFile << "           }," << endl;
         // Write replaced optimization information.
-        counter = 0;
         jsonFile << "           \"replaced\": {" << endl;
         map<int,ReplacedInfo>::iterator itRep;
-        for (itRep = node->fnOrder2repInfo.begin(); itRep != node->fnOrder2repInfo.end(); ++itRep) {
+        for (itRep = node->instOrder2repInfo.begin(); itRep != node->instOrder2repInfo.end();) {
             jsonFile << "               \"" << dec << itRep->first << "\": {" << endl;
             jsonFile << "                   \"from\":" << (itRep->second).nodeIdFrom << "," << endl;
             jsonFile << "                   \"to\":" << (itRep->second).nodeIdTo << endl;
 
-            if (counter < int((node->fnOrder2repInfo).size())-1) {
+            if (++itRep != node->instOrder2repInfo.end()) {
                 jsonFile << "                }," << endl;
             }
             else {
                 jsonFile << "                }" << endl;
             }
-            counter++;
         }
         jsonFile << "           }," << endl;
         // Write direct value optimization information.
-        counter = 0;
         jsonFile << "           \"directValueOpt\": {" << endl;
         map<int, DirectValOpt>::iterator itDir;
-        for (itDir = node->fnOrder2dirValOpt.begin(); itDir != node->fnOrder2dirValOpt.end(); ++itDir) {
+        for (itDir = node->instOrder2dirValOpt.begin(); itDir != node->instOrder2dirValOpt.end();) {
             jsonFile << "               \"" << dec << itDir->first << "\": {" << endl;
             jsonFile << "                   \"offset\":" << dec << (itDir->second).offset << "," << endl;
             jsonFile << "                   \"valFrom\":\"" << hex << (itDir->second).valFrom << "\"," << endl;
@@ -2313,32 +2467,48 @@ void write2Json() {
                 jsonFile << "                   \"is_update\": false" << endl;
             }
 
-            if (counter < int((node->fnOrder2dirValOpt).size())-1) {
+            if (++itDir != node->instOrder2dirValOpt.end()) {
                 jsonFile << "               }," << endl;
             }
             else {
                 jsonFile << "               }" << endl;
             }
-            counter++;
         }
         jsonFile << "           }," << endl;
-        // Function access log information.
-        counter = 0;
-        jsonFile << "           \"fnAccess\": {" << endl;
-        map<int, FnInfo>::iterator itFnInfo;
-        for (itFnInfo = node->fnInfo.begin(); itFnInfo != node->fnInfo.end(); ++itFnInfo) {
-            jsonFile << "               \"" << dec << itFnInfo->first << "\": {" << endl;
-            jsonFile << "                   \"fnId\":" << dec << (itFnInfo->second).fnId << "," << endl;
-            jsonFile << "                   \"type\":" << dec << (itFnInfo->second).accessType << endl;
+        // Node access (evaluate) information.
+        jsonFile << "           \"evaluates\": {" << endl;
+        map<int, Offset2Value>::iterator itOff;
+        for (itOff = node->instOrder2offVal.begin(); itOff != node->instOrder2offVal.end();) {
+            jsonFile << "               \"" << dec << itOff->first << "\": {" << endl;
+            jsonFile << "                   \"offset\":" << dec << (itOff->second).offset << "," << endl;
+            jsonFile << "                   \"value\":\"" << hex << (itOff->second).value << "\"" << endl;
 
-            if (counter < int((node->fnInfo).size())-1) {
+            if (++itOff != node->instOrder2offVal.end()) {
                 jsonFile << "               }," << endl;
             }
             else {
                 jsonFile << "               }" << endl;
             }
-            counter++;
+        }
+        jsonFile << "           }," << endl;
+        // Instruction access log information.
+        jsonFile << "           \"instAccess\": {" << endl;
+        map<int, InstInfo>::iterator itinstInfo;
+        for (itinstInfo = node->instInfo.begin(); itinstInfo != node->instInfo.end();) {
+            jsonFile << "               \"" << dec << itinstInfo->first << "\": {" << endl;
+            jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
+            jsonFile << "," << endl;
+            jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
+            string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
+            jsonFile << "                   \"binary\":\"" << binString << "\"," << endl;
+            jsonFile << "                   \"type\":" << dec << (itinstInfo->second).accessType << endl;
 
+            if (++itinstInfo != node->instInfo.end()) {
+                jsonFile << "               }," << endl;
+            }
+            else {
+                jsonFile << "               }" << endl;
+            }
         }
         jsonFile << "           }" << endl;
         // Closing
@@ -2351,14 +2521,37 @@ void write2Json() {
     }
     jsonFile << "   ]," << endl;
     // Print function information.
-    counter = 0;
+    map<UINT32, string> fnId2fnStr;
+    map<int, UINT32>::iterator itfnCallRetId2fnId1;
+    itfnCallRetId2fnId1 = fnCallRet.begin();
+    while (itfnCallRetId2fnId1 != fnCallRet.end()) {
+        string fn = strTable.get(itfnCallRetId2fnId1->second);
+        fnId2fnStr[itfnCallRetId2fnId1->second] = fn;
+        ++itfnCallRetId2fnId1;
+    }
     jsonFile << "   \"fnId2Name\": {" << endl;
-    map<UINT32, std::string>::iterator itFnId2Name;
-    for (itFnId2Name = IRGraph->fnId2Name.begin(); itFnId2Name != IRGraph->fnId2Name.end(); ++itFnId2Name) {
-        jsonFile << "       \"" << dec << itFnId2Name->first << "\":";
-        jsonFile << "\"" << itFnId2Name->second << "\"";
+    map<UINT32, string>::iterator itfnId2fnStr;
+    for (itfnId2fnStr = fnId2fnStr.begin(); itfnId2fnStr != fnId2fnStr.end();) {
+        jsonFile << "       \"" << dec << itfnId2fnStr->first << "\":";
+        jsonFile << "\"" << itfnId2fnStr->second << "\"";
 
-        if (counter < int((IRGraph->fnId2Name).size())-1) {
+        if (++itfnId2fnStr != fnId2fnStr.end()) {
+            jsonFile << "," << endl;
+        }
+        else {
+            jsonFile << endl;
+        }
+    }
+    jsonFile << "   }," << endl;
+    // Print fnCallRetId-fnId information.
+    counter = 0;
+    jsonFile << "   \"fnCallRetId2fnId\": {" << endl;
+    map<int, UINT32>::iterator itfnCallRetId2fnId2;
+    for (itfnCallRetId2fnId2 = fnCallRet.begin(); itfnCallRetId2fnId2 != fnCallRet.end();) {
+        jsonFile << "       \"" << dec << itfnCallRetId2fnId2->first << "\":";
+        jsonFile << itfnCallRetId2fnId2->second;
+
+        if (++itfnCallRetId2fnId2 != fnCallRet.end()) {
             jsonFile << "," << endl;
         }
         else {
@@ -2366,17 +2559,52 @@ void write2Json() {
         }
         counter++;
     }
+    jsonFile << "   }," << endl;
+    // Print all memory writes happened during the JIT compilation.
+    jsonFile << "   \"memory_writes\": {" << endl;
+    map<ADDRINT, MWInst>::iterator itWrites;
+    for (itWrites = writes.begin(); itWrites != writes.end();) {
+        jsonFile << "       \"" << hex << itWrites->first << "\":";
+        jsonFile << "\"" << hex << (itWrites->second).value << "\"";
+        if (++itWrites != writes.end()) {
+            jsonFile << "," << endl;
+        }
+        else {
+            jsonFile << endl;
+        }
+    }
+    jsonFile << "   }," << endl;
+    // Print all memory reads happened during the JIT compilation.
+    jsonFile << "   \"memory_reads\": {" << endl;
+    map<ADDRINT, MRInst>::iterator itReads;
+    for (itReads = reads.begin(); itReads != reads.end();) {
+        jsonFile << "       \"" << hex << itReads->first << "\":";
+        jsonFile << "\"" << hex << (itReads->second).value << "\"";
+        if (++itReads != reads.end()) {
+            jsonFile << "," << endl;
+        }
+        else {
+            jsonFile << endl;
+        }
+    }
     jsonFile << "   }" << endl;
     jsonFile << "}" << endl;
 }
 
 /**
  * Function: endFile
- * Description:
- * Input:
- * Output:
+ * Description: This function is being called at the end of tracing.
+ *  Currently, this function simply calls write2Json to write the modeled IR to a JSON file.
+ * Input: None.
+ * Output: None.
  **/
 void endFile() {
     // Write IR to a file in JSON.
     write2Json();
+
+    //map<int,UINT32>::iterator it;
+    //cout << "Size: " << fnCallRet.size() << endl;
+    //for (it = fnCallRet.begin(); it != fnCallRet.end(); ++it) {
+    //    cout << dec << "(" << it->first << ", " << it->second << ")" << endl;
+    //}
 }

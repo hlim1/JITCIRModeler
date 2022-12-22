@@ -26,18 +26,18 @@ const int V8_OPCODE_SIZE = 2;
 const int JSC_OPCODE_SIZE = 4;
 const int SPM_OPCODE_SIZE = 2;
 
-const std::string NODE_FORMERS[2] = {
-    "v8::internal::compiler::Node::New",
+const std::string NODE_FORMERS[1] = {
     "JSC::DFG::Node::Node"
 };
 
-const std::string NODE_BLOCK_ALLOCATORS[44] = {
+const std::string NODE_BLOCK_ALLOCATORS[46] = {
     "v8::internal::compiler::Node::New",
     "bmalloc::BumpAllocator::allocate",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
     "js::jit::MParameter::New<int const&>",
     "js::jit::MConstant::New",
+    "js::jit::MConstant::MConstant",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
     "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
@@ -58,6 +58,7 @@ const std::string NODE_BLOCK_ALLOCATORS[44] = {
     "js::jit::MUnbox::New",
     "js::jit::MUnreachableResult::New<js::jit::MIRType&>",
     "js::jit::MCheckReturn::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
+    "js::jit::MCheckThis::New<js::jit::MDefinition*&>",
     "js::jit::MCheckThisReinit::New<js::jit::MDefinition*&>",
     "js::jit::MSuperFunction::New<js::jit::MDefinition*&>",
     "js::jit::MBigIntPow::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
@@ -78,13 +79,14 @@ const std::string NODE_BLOCK_ALLOCATORS[44] = {
     "js::jit::MTest::New<js::jit::MDefinition*, js::jit::MBasicBlock*, js::jit::MBasicBlock*>"
 };
 
-const std::string MAIN_NODE_CREATORS[44] { 
+const std::string MAIN_NODE_CREATORS[46] { 
     "v8::internal::compiler::Node::New",
     "JSC::DFG::Node::Node",
     "js::jit::MBasicBlock::New",
     "js::jit::MGoto::New",
     "js::jit::MParameter::New<int const&>",
     "js::jit::MConstant::New",
+    "js::jit::MConstant::MConstant",
     "js::jit::MToDouble::New<js::jit::MDefinition*&>",
     "js::jit::MAdd::New<js::jit::MDefinition*&, js::jit::MConstant*&, js::jit::MIRType>",
     "js::jit::MSub::New<js::jit::MDefinition*&, js::jit::MDefinition*&, js::jit::MIRType>",
@@ -105,6 +107,7 @@ const std::string MAIN_NODE_CREATORS[44] {
     "js::jit::MUnbox::New",
     "js::jit::MUnreachableResult::New<js::jit::MIRType&>",
     "js::jit::MCheckReturn::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
+    "js::jit::MCheckThis::New<js::jit::MDefinition*&>",
     "js::jit::MCheckThisReinit::New<js::jit::MDefinition*&>",
     "js::jit::MSuperFunction::New<js::jit::MDefinition*&>",
     "js::jit::MBigIntPow::New<js::jit::MDefinition*&, js::jit::MDefinition*&>",
@@ -130,13 +133,13 @@ const std::string NONIR_NODE_ALLOCATORS[2] = {
     "js::jit::MResumePoint::New"
 };
 
-const int NODE_FORMERS_SIZE = 2;
-const int NODE_ALLOC_SIZE = 44;
-const int NODE_CREATORS_SIZE = 44;
+const int NODE_FORMERS_SIZE = 1;
+const int NODE_ALLOC_SIZE = 46;
+const int NODE_CREATORS_SIZE = 46;
 const int NONIR_NODE_ALLOC_SIZE = 2;
 
 // Main modeled IR constructor function.
-void constructModeledIRNode(UINT32 fnId, UINT32 system_id);
+void constructModeledIRNode(UINT32 fnId, UINT8* binary, ADDRINT instSize, UINT32 system_id);
 
 
 // API functions for system-specifics.
@@ -166,13 +169,18 @@ ADDRINT get_size_spm(ADDRINT address);
 ADDRINT *get_update_opcode_spm(Node* node, ADDRINT location, ADDRINT value, ADDRINT valueSize);
 
 // Optimization functions.
-void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT32 system_id);
-void edgeRemoval(Node *node, int edge_idx, UINT32 fnId);
-void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId);
-void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId);
-void nodeDestroy(Node *node, UINT32 fnId);
-void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId);
-void opcodeUpdate(Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id, UINT32 fnId);
+void trackOptimization(
+        ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT8* binary,
+        ADDRINT instSize, UINT32 system_id);
+void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+void opcodeUpdate(
+        Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id, UINT32 fnId,
+        UINT8* binary, ADDRINT instSize);
+void nodeEvaluation(ADDRINT readAddr, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
@@ -184,8 +192,8 @@ bool    fnInNonIRAllocs(std::string fn);
 int     compareValuetoIRNodes(ADDRINT value);
 int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isMemoryWriteLoc(ADDRINT value);
-void    updateLogInfo(Node *node, UINT32 fnId, Access accessType);
-bool    isSameAccess(Node *node, FnInfo fnInfo);
+void    updateLogInfo(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType);
+bool    isSameAccess(Node *node, InstInfo instInfo);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);

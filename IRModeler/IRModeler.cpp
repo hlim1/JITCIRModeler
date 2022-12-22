@@ -83,12 +83,12 @@ void pinFinish(int, void *) {
 
 /**
  * Function: imgInstrumentation
- * Description: The instrumentation for when an image is loaded. Currently all this does is iterate over the
- *  symbols loaded by the image, and puts the addresses and names in a map. If we execute this address, then
- *  we say we are executing that function (It seems like PIN is only giving me the symbols for functions 
- *  anyway? It's a big thing, I'd rather not get into it). Currently there is some commented out code, I'm
- *  leaving that in there because it's part of the process of trying to figure out how to get global/dynamic
- *  data. 
+ * Description: The instrumentation for when an image is loaded. Currently all this does is iterate
+ * over the symbols loaded by the image, and puts the addresses and names in a map.
+ * If we execute this address, then we say we are executing that function (It seems like PIN is
+ * only giving me the symbols for functions anyway? It's a big thing, I'd rather not get into it).
+ * Currently there is some commented out code, I'm leaving that in there because it's part of
+ * the process of trying to figure out how to get global/dynamic data. 
  * Side Effects: populates apiMap with function names
  * Outputs: None
  **/    
@@ -114,13 +114,13 @@ void imgInstrumentation(IMG img, void *v) {
  *   1) Determine if we are interested in the code. For example, we don't care about code that 
  *       occured before the entry
  *   2) Extract information about the instruction from PIN
- *      - Note, while we generally want to avoid dynamically allocating memory, we do it here because 
- *         hopefully this function should be called relatively few times compared to the analysis 
- *         functions, and because PIN only allows us to pass certain things to our analysis function, 
- *         such as a pointer.
+ *      - Note, while we generally want to avoid dynamically allocating memory, we do it here
+ *        because hopefully this function should be called relatively few times compared to 
+ *        the analysis functions, and because PIN only allows us to pass certain things to our 
+ *        analysis function, such as a pointer.
  *   3) Decide what needs to be done with the information and schedule the appropriate callbacks.
  *      - This is done based on the operand information and what information the user requested be 
- *         recorded the trace
+ *        recorded the trace
  * Output: None
  */
 void insInstrumentation(INS ins, void *v) {
@@ -174,14 +174,17 @@ void insInstrumentation(INS ins, void *v) {
     }
 
     // Initialize thread(s), if necessary.
-    INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR) checkInitializedStatus, IARG_THREAD_ID, IARG_END);
-    INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR) initThread, IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_END);
+    INS_InsertIfCall(
+            ins, IPOINT_BEFORE, (AFUNPTR) checkInitializedStatus, IARG_THREAD_ID, IARG_END);
+    INS_InsertThenCall(
+            ins, IPOINT_BEFORE, (AFUNPTR) initThread, IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_END);
 
     // Get the function name of current instruction.
     string fnStr = "";
     getFnName(rtn, img, fnStr);
 
-    // Check and mark is_jit to true if the compiler for the system first appeared in the function name.
+    // Check and mark is_jit to true if the compiler for the system first appeared in
+    // the function name.
     if (
             !is_jit && 
             (fnStr.find(V8_JIT) != std::string::npos || 
@@ -194,6 +197,19 @@ void insInstrumentation(INS ins, void *v) {
     // Only anlayze the instructions that execute after the jit compiler executed.
     if (is_jit) {
         UINT32 fnId = strTable.insert(fnStr.c_str());
+
+        // Collect instruction binary (opcode & operands).
+        ADDRINT instSize = INS_Size(ins);
+        UINT8 *binary = new UINT8[instSize];
+        EXCEPTION_INFO *exInfo = NULL;
+        PIN_FetchCode(binary, (const void *) addr, instSize, exInfo);
+        if(
+                INS_IsSyscall(ins) && 
+                INS_Opcode(ins) == XED_ICLASS_INT && binary[0] == 0xEA && binary[1] == 0x1e) {
+            instSize = 2;
+            binary[0] = 0xCD;
+            binary[1] = 0x2E;
+        }
 
         // Identify current system.
         if (system_id == UINT32_INVALID) {
@@ -208,25 +224,31 @@ void insInstrumentation(INS ins, void *v) {
             }
         }
 
-        // Check whether or not the current instruction is an instruction for node allocator function.
+        // INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) recordFnCallRet, IARG_UINT32, fnId);
+        recordFnCallRet(fnId);
+
+        // Check whether or not the current instruction is an instruction for node allocator
+        // function.
         bool is_node_creation = fnInCreators(fnStr);
 
-        // If the current instruction is for a node allocation and it's a return, construct modeled IR node.
+        // If the current instruction is for a node allocation and it's a return, construct modeled
+        // IR node.
         if (is_node_creation && INS_IsRet(ins)) {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) constructModeledIRNode, IARG_UINT32,
-                    fnId, IARG_UINT32, system_id, IARG_END);
+                    fnId, IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id, IARG_END);
         }
 
         // Record memory reads.
         if(regsWritten || memWritten) {
             if(memReadOps == 1) {
                 INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) checkMemRead,
-                        IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, fnId, IARG_END);
+                        IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, fnId, 
+                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_END);
             }
             else if(memReadOps == 2) {
                 INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) check2MemRead,
                         IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE,
-                        IARG_UINT32, fnId, IARG_END);
+                        IARG_UINT32, fnId, IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_END);
             }
         }
 
@@ -255,7 +277,8 @@ void insInstrumentation(INS ins, void *v) {
                     IARG_THREAD_ID, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
         }
 
-        // Analyze recorded instruction information, i.e., src. registers, dest. registers, and memory, etc.
+        // Analyze recorded instruction information, i.e., src. registers, dest. registers,
+        // and memory, etc.
         if(!INS_IsSyscall(ins)) {
             bool isAnalyze = false;
             if(INS_HasFallThrough(ins)) {
@@ -263,7 +286,7 @@ void insInstrumentation(INS ins, void *v) {
                         ins, IPOINT_AFTER, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
-                        IARG_UINT32, system_id,
+                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id,
                         IARG_END);
                 isAnalyze = true;
             }
@@ -273,7 +296,7 @@ void insInstrumentation(INS ins, void *v) {
                         ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
-                        IARG_UINT32, system_id,
+                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id,
                         IARG_END);
                 isAnalyze = true;
             }
@@ -286,8 +309,8 @@ void insInstrumentation(INS ins, void *v) {
 
 /**
  * Function: checkSelections
- * Description: Checks the command line arguments and sets flags indicating what information to include in
- *  the trace.
+ * Description: Checks the command line arguments and sets flags indicating what information to 
+ * include in the trace.
  * Output: None
  **/
 void checkSelections() {
