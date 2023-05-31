@@ -139,7 +139,7 @@ const int NODE_CREATORS_SIZE = 46;
 const int NONIR_NODE_ALLOC_SIZE = 2;
 
 // Main modeled IR constructor function.
-void constructModeledIRNode(UINT32 fnId, UINT8* binary, ADDRINT instSize, UINT32 system_id);
+void constructModeledIRNode(UINT32 fnId, UINT8* binary, ADDRINT instSize, UINT32 system_id, ADDRINT addr);
 
 
 // API functions for system-specifics.
@@ -171,16 +171,16 @@ ADDRINT *get_update_opcode_spm(Node* node, ADDRINT location, ADDRINT value, ADDR
 // Optimization functions.
 void trackOptimization(
         ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId, UINT8* binary,
-        ADDRINT instSize, UINT32 system_id);
-void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize);
-void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize);
-void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8* binary, ADDRINT instSize);
-void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize);
-void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+        ADDRINT instSize, UINT32 system_id, ADDRINT addr);
+void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
+void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
+void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
+void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
+void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
 void opcodeUpdate(
-        Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id, UINT32 fnId,
-        UINT8* binary, ADDRINT instSize);
-void nodeEvaluation(ADDRINT readAddr, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+        Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 system_id,
+        UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
+void nodeEvaluation(ADDRINT readAddr, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
 
 // Helper functions.
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size);
@@ -192,7 +192,7 @@ bool    fnInNonIRAllocs(std::string fn);
 int     compareValuetoIRNodes(ADDRINT value);
 int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isMemoryWriteLoc(ADDRINT value);
-void    updateLogInfo(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType);
+void    updateLogInfo(Node *node, ADDRINT addr, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType);
 bool    isSameAccess(Node *node, InstInfo instInfo);
 
 // Prints for debugging.

@@ -179,7 +179,9 @@ bool is_former_range = false;
  *  - system_id (UIN32): JIT compiler system ID.
  * Output: None.
  **/
-void constructModeledIRNode(UINT32 fnId, UINT8* binary, ADDRINT instSize, UINT32 system_id) {
+void constructModeledIRNode(
+        UINT32 fnId, UINT8* binary, ADDRINT instSize, 
+        UINT32 system_id, ADDRINT addr) {
 
     // Keep a track of system ID in the IR, if not populated already.
     if (IRGraph->systemId == UINT32_INVALID) {
@@ -236,7 +238,7 @@ void constructModeledIRNode(UINT32 fnId, UINT8* binary, ADDRINT instSize, UINT32
     IRGraph->lastNodeId += 1;
 
     // Update the log with CREATE access.
-    updateLogInfo(node, fnId, binary, instSize, CREATE);
+    updateLogInfo(node, addr, fnId, binary, instSize, CREATE);
 
     // Reset temporary value holders.
     currentRaxValSize = 0;
@@ -1216,7 +1218,7 @@ void PIN_FAST_ANALYSIS_CALL recordDestRegs(THREADID tid, const RegVector *destRe
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None
  **/
-void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
 
     string fn = strTable.get(fnId);
 
@@ -1241,7 +1243,7 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary,
 
     // Check if the current memory location belongs to any of existing node,
     // i.e., node evaluation.
-    nodeEvaluation(readAddr, valueInt, fnId, binary, instSize);
+    nodeEvaluation(readAddr, valueInt, fnId, binary, instSize, addr);
 
     PIN_MutexUnlock(&dataLock);
 }
@@ -1257,10 +1259,10 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary,
  * Output: None.
  **/
 void check2MemRead(
-        ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize)
+        ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr)
 {
-    checkMemRead(readAddr1, readSize, fnId, binary, instSize);
-    checkMemRead(readAddr2, readSize, fnId, binary, instSize);
+    checkMemRead(readAddr1, readSize, fnId, binary, instSize, addr);
+    checkMemRead(readAddr2, readSize, fnId, binary, instSize, addr);
 }
 
 /**
@@ -1301,8 +1303,9 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
  * Output: true if labeled, false otherwise.
  **/
 bool analyzeRecords(
-        THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode,
-        bool is_create, UINT8* binary, ADDRINT instSize, UINT32 system_id
+        THREADID tid, const CONTEXT *ctx, UINT32 fnId, 
+        UINT32 opcode, bool is_create, UINT8* binary, 
+        ADDRINT instSize, UINT32 system_id, ADDRINT addr
 ) {
 
     ThreadData &data = tls[tid];
@@ -1345,7 +1348,7 @@ bool analyzeRecords(
 
     // If the instruction has memory write, analyze memory write, e.g., MW[..]=...
     if(data.memWriteSize != 0) {
-        analyzeMemWrites(tid, fnId, is_former_range, binary, instSize, system_id);
+        analyzeMemWrites(tid, fnId, is_former_range, binary, instSize, system_id, addr);
         data.memWriteSize = 0; 
     }
 
@@ -1453,7 +1456,7 @@ void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opco
  **/
 void analyzeMemWrites(
         THREADID tid, UINT32 fnId, bool is_range, UINT8* binary,
-        ADDRINT instSize, UINT32 system_id) 
+        ADDRINT instSize, UINT32 system_id, ADDRINT addr) 
 {
 
     ThreadData &data = tls[tid];
@@ -1507,7 +1510,10 @@ void analyzeMemWrites(
 
     // If there are IR nodes, analyzes and extracts, if exists, optimization information.
     if (IRGraph->lastNodeId > 0) {
-        trackOptimization(write.location, write.value, data.memWriteSize, fnId, binary, instSize, system_id);
+        trackOptimization(
+                write.location, write.value, 
+                data.memWriteSize, fnId,
+                binary, instSize, system_id, addr);
     }
 }
 
@@ -1525,8 +1531,10 @@ void analyzeMemWrites(
  *  - system_id (UINT32): JIT compiler system ID. 
  * Output: None.
  **/
-void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT32 fnId,
-        UINT8* binary, ADDRINT instSize, UINT32 system_id) 
+void trackOptimization(
+        ADDRINT location, ADDRINT value, ADDRINT valueSize, 
+        UINT32 fnId, UINT8* binary, ADDRINT instSize, 
+        UINT32 system_id, ADDRINT addr) 
 {
 
     // Check if the current memory location belongs to any one of existing node.
@@ -1557,28 +1565,28 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
         if (edge_idx != INT_INVALID) {
             // If value is '0', which is to wipe out the memory location, handle edge 'removal'.
             if (value == WIPEMEM) {
-                edgeRemoval(node, edge_idx, fnId, binary, instSize);
+                edgeRemoval(node, edge_idx, fnId, binary, instSize, addr);
             }
             // If value is one of the existing nodes, handle edge 'replace'.
             else if (value_id != INT_INVALID) {
-                edgeReplace(node, value_id, edge_idx, fnId, binary, instSize);
+                edgeReplace(node, value_id, edge_idx, fnId, binary, instSize, addr);
             }
         }
         // If the location is not occupied edge, but the value is a node, handle edge 'addition'.
         else if (edge_idx == INT_INVALID && value_id != INT_INVALID) {
-            edgeAddition(node, location, value_id, fnId, binary, instSize);
+            edgeAddition(node, location, value_id, fnId, binary, instSize, addr);
         }
         // If the location belongs to some node block, but it's not an edge and the value is not a node.
         else if (edge_idx == INT_INVALID && value_id == INT_INVALID) {
             // Node's are being destroyed and the location is being wiped by writing '0'.
             // We check such pattern in the instruction and mark the node dead.
             if (is_node_addr && value == WIPEMEM) {
-                nodeDestroy(node, fnId, binary, instSize);
+                nodeDestroy(node, fnId, binary, instSize, addr);
             }
             // If the write is happening at node address locaiton, then check whether it's an opcode
             // update or not and update the opcode, if yes.
             else if (is_node_addr && value != WIPEMEM) {
-                opcodeUpdate(node, location, value, valueSize, system_id, fnId, binary, instSize);
+                opcodeUpdate(node, location, value, valueSize, system_id, fnId, binary, instSize, addr);
             }
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
@@ -1588,7 +1596,7 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
                 // a value with an assmption is that the address's size is 8. This is not a good approach
                 // so we need to update it with more appropriate way.
                 if (is_direct && valueSize < 8) {
-                    directValueWrite(node, location, value, fnId, binary, instSize); 
+                    directValueWrite(node, location, value, fnId, binary, instSize, addr); 
                 }
                 else {
                     // TODO: Need to handle indirect (pointing to non-ir object) assignment.
@@ -1608,10 +1616,11 @@ void trackOptimization(ADDRINT location, ADDRINT value, ADDRINT valueSize, UINT3
  *  - accesType (Access): Type of access to the node.
  * Output: None.
  **/
-void updateLogInfo(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType) {
+void updateLogInfo(Node *node, ADDRINT addr, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType) {
 
     // Create a new instInfo object and update it.
     InstInfo instInfo;
+    instInfo.address = addr;
     instInfo.fnCallRetId = fnCallRetId;
     instInfo.fnId = fnId;
     instInfo.binary = new UINT8[instSize];
@@ -1668,7 +1677,7 @@ bool isSameAccess(Node *node, InstInfo instInfo) {
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output:
  **/
-void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
 
     Node *target = node->edgeNodes[edge_idx];
     // In some cases, I see an instruction that cleans memory location where it's alreay
@@ -1684,7 +1693,7 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT i
         assert(edge_idx < node->numberOfEdges);
         node->edgeNodes[edge_idx] = NULL;
         // Update function log information.
-        updateLogInfo(node, fnId, binary, instSize, REMOVAL);
+        updateLogInfo(node, addr, fnId, binary, instSize, REMOVAL);
     }
 }
 
@@ -1699,7 +1708,7 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT i
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  **/
-void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
 
     assert(value_id < IRGraph->lastNodeId);
     Node *to = IRGraph->nodes[value_id];
@@ -1721,7 +1730,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* bin
     assert(edge_idx < node->numberOfEdges);
     node->edgeNodes[edge_idx] = to;
     // Update function log information.
-    updateLogInfo(node, fnId, binary, instSize, REPLACE);
+    updateLogInfo(node, addr, fnId, binary, instSize, REPLACE);
 }
 
 /**
@@ -1735,7 +1744,7 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* bin
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  **/
-void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
 
     assert(value_id < IRGraph->lastNodeId);
     Node *adding = IRGraph->nodes[value_id];
@@ -1748,7 +1757,7 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8
     node->edgeAddrs[node->numberOfEdges] = location;
     node->numberOfEdges++;
     // Update function log information.
-    updateLogInfo(node, fnId, binary, instSize, ADDITION);
+    updateLogInfo(node, addr, fnId, binary, instSize, ADDITION);
 }
 
 /**
@@ -1760,12 +1769,12 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  **/
-void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
 
     // Simply set node->alive to false to indicate the node's been destroyed.
     node->alive = false;
     // Update function log information.
-    updateLogInfo(node, fnId, binary, instSize, KILL);
+    updateLogInfo(node, addr, fnId, binary, instSize, KILL);
 }
 
 /**
@@ -1779,7 +1788,7 @@ void nodeDestroy(Node *node, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  **/
-void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
 
     // Compute the offset first.
     ADDRINT offset = location - node->blockHead;
@@ -1821,7 +1830,7 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, 
         assert((node->instOrder2dirValOpt).size()+1 < (node->instOrder2dirValOpt).max_size());
         node->instOrder2dirValOpt[instruction.id] = directValOpt;
         // Update function log information.
-        updateLogInfo(node, fnId, binary, instSize, VALUE_CHANGE);
+        updateLogInfo(node, addr, fnId, binary, instSize, VALUE_CHANGE);
     }
 }
 
@@ -1840,7 +1849,8 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, 
  **/
 void opcodeUpdate(
         Node *node, ADDRINT location, ADDRINT value, ADDRINT valueSize, 
-        UINT32 system_id, UINT32 fnId, UINT8* binary, ADDRINT instSize) 
+        UINT32 system_id, UINT32 fnId, UINT8* binary, ADDRINT instSize,
+        ADDRINT addr) 
 {
 
     // Check if the memory write value is an opcode.
@@ -1856,7 +1866,7 @@ void opcodeUpdate(
         assert((node->id2Opcode).size()+1 < (node->id2Opcode).max_size());
         node->id2Opcode[instruction.id] = opcode[0];
         // Update function log information.
-        updateLogInfo(node, fnId, binary, instSize, OP_UPDATE);
+        updateLogInfo(node, addr, fnId, binary, instSize, OP_UPDATE);
     }
 }
 
@@ -1873,7 +1883,7 @@ void opcodeUpdate(
  *  - instSize (ADDRINT): size of the instruction.
  *  Output:
  **/
-void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* binary, ADDRINT instSize) {
+void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
     ADDRINT nodeId = ADDRINT_INVALID;
     bool is_node_block = false;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
@@ -1917,7 +1927,7 @@ void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* bina
     // If the access was happened, update the node's access log.
     if (is_node_block) {
         Node *accessed =  IRGraph->nodes[nodeId];
-        updateLogInfo(accessed, fnId, binary, instSize, EVALUATE);
+        updateLogInfo(accessed, addr, fnId, binary, instSize, EVALUATE);
     }
 }
 
@@ -2496,6 +2506,7 @@ void write2Json() {
         map<int, InstInfo>::iterator itinstInfo;
         for (itinstInfo = node->instInfo.begin(); itinstInfo != node->instInfo.end();) {
             jsonFile << "               \"" << dec << itinstInfo->first << "\": {" << endl;
+            jsonFile << "                   \"address\":" << dec << (itinstInfo->second).address << "," << endl;
             jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
             jsonFile << "," << endl;
             jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;

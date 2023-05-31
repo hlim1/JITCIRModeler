@@ -13,18 +13,18 @@ void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
 void PIN_FAST_ANALYSIS_CALL recordSrcId(THREADID tid, UINT32 srcId);
 void PIN_FAST_ANALYSIS_CALL recordDestRegs(THREADID tid, const RegVector *destRegs, UINT32 destFlags);
 void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size);
-void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
 void check2MemRead(
-        ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize);
+        ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
 void recordFnCallRet(UINT32 fnId);
 
 // Analysis functions
 bool analyzeRecords(
         THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode, bool is_create, UINT8* binary,
-        ADDRINT instSize, UINT32 system_id);
+        ADDRINT instSize, UINT32 system_id, ADDRINT addr);
 void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode);
 void analyzeMemWrites(
-        THREADID tid, UINT32 fnId, bool is_range, UINT8* binary, ADDRINT instSize, UINT32 system_id);
+        THREADID tid, UINT32 fnId, bool is_range, UINT8* binary, ADDRINT instSize, UINT32 system_id, ADDRINT addr);
 void analyzeRegReads();
 
 //handles architectural events

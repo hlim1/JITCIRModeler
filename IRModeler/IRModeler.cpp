@@ -126,7 +126,7 @@ void imgInstrumentation(IMG img, void *v) {
 void insInstrumentation(INS ins, void *v) {
 
     const ADDRINT addr = INS_Address(ins);
-    
+
     if(!entryPointFound) {
         if(addr == entryPoint) {
             PIN_RemoveInstrumentation();
@@ -234,8 +234,10 @@ void insInstrumentation(INS ins, void *v) {
         // If the current instruction is for a node allocation and it's a return, construct modeled
         // IR node.
         if (is_node_creation && INS_IsRet(ins)) {
-            INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) constructModeledIRNode, IARG_UINT32,
-                    fnId, IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id, IARG_END);
+            INS_InsertCall(
+                    ins, IPOINT_BEFORE, (AFUNPTR) constructModeledIRNode, IARG_UINT32,
+                    fnId, IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, 
+                    system_id, IARG_INST_PTR, IARG_END);
         }
 
         // Record memory reads.
@@ -243,12 +245,13 @@ void insInstrumentation(INS ins, void *v) {
             if(memReadOps == 1) {
                 INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) checkMemRead,
                         IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, fnId, 
-                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_END);
+                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_INST_PTR, IARG_END);
             }
             else if(memReadOps == 2) {
                 INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) check2MemRead,
                         IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE,
-                        IARG_UINT32, fnId, IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_END);
+                        IARG_UINT32, fnId, IARG_PTR, binary, IARG_ADDRINT, instSize, 
+                        IARG_INST_PTR, IARG_END);
             }
         }
 
@@ -286,7 +289,7 @@ void insInstrumentation(INS ins, void *v) {
                         ins, IPOINT_AFTER, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
-                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id,
+                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id, IARG_INST_PTR,
                         IARG_END);
                 isAnalyze = true;
             }
@@ -296,7 +299,7 @@ void insInstrumentation(INS ins, void *v) {
                         ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) analyzeRecords, 
                         IARG_THREAD_ID, IARG_CONST_CONTEXT, IARG_UINT32, fnId,
                         IARG_UINT32, INS_Opcode(ins), IARG_BOOL, is_node_creation,
-                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id,
+                        IARG_PTR, binary, IARG_ADDRINT, instSize, IARG_UINT32, system_id, IARG_INST_PTR,
                         IARG_END);
                 isAnalyze = true;
             }
