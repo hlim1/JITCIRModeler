@@ -1,6 +1,10 @@
 # JITCIRModeler
 Just-in-Time Compiler Intermediate Representation Modeler (JITCIRModeler)
 
+## Publication
+
+HeuiChan Lim, Xiyu Kang, and Saumya Debray. 2022. Modeling code manipulation in JIT compilers. In Proceedings of the 11th ACM SIGPLAN International Workshop on the State Of the Art in Program Analysis (SOAP 2022). Association for Computing Machinery, New York, NY, USA, 9–15. https://doi.org/10.1145/3520313.3534656
+
 ## IRModeler Execute Command and Example
 
 ```
