@@ -22,6 +22,7 @@ enum Access {
 struct InstInfo {
     InstInfo(): fnCallRetId(0), accessType(INVALID) {}
 
+    ADDRINT address;    // Instruction address.
     int fnCallRetId;    // Function call-return id, i.e., index in the sequence.
     UINT32 fnId;        // Function id.
     UINT8* binary;      // Instruction in binary (opcode & operands).
