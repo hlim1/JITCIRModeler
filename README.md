@@ -8,10 +8,10 @@ HeuiChan Lim, Xiyu Kang, and Saumya Debray. 2022. Modeling code manipulation in 
 ## IRModeler Execute Command and Example
 
 ```
-<PIN_ROOT>/pin -t <PIN_ROOT>/AutoLocalizer/JITCIRModeler/IRModeler/obj-intel64/IRModeler.so -- <Target Executable> <Input Program to the Target Executable>
+<PIN_ROOT>/pin -t <PIN_ROOT>/JITCIRModeler/IRModeler/obj-intel64/IRModeler.so -- <Target Executable> <Input Program to the Target Executable>
 
 e.g.,
-  <PIN_ROOT>/pin -t <PIN_ROOT>/AutoLocalizer/JITCIRModeler/IRModeler/obj-intel64/IRModeler.so -- d8 poc.js
+  <PIN_ROOT>/pin -t <PIN_ROOT>/JITCIRModeler/IRModeler/obj-intel64/IRModeler.so -- d8 poc.js
 ```
 
 ## Output
