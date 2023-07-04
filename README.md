@@ -5,6 +5,20 @@ Just-in-Time Compiler Intermediate Representation Modeler (JITCIRModeler)
 
 HeuiChan Lim, Xiyu Kang, and Saumya Debray. 2022. Modeling code manipulation in JIT compilers. In Proceedings of the 11th ACM SIGPLAN International Workshop on the State Of the Art in Program Analysis (SOAP 2022). Association for Computing Machinery, New York, NY, USA, 9–15. https://doi.org/10.1145/3520313.3534656
 
+## Requirements:
+### Linux
+- Intel's [Pin Tool](https://www.intel.com/content/www/us/en/developer/articles/tool/pin-a-binary-instrumentation-tool-downloads.html)
+    - Stable Version for BackEndModeler is 3.13.
+    - Set the environment variable `PIN_ROOT` to point to the directory containing Pin.
+- Intel's [XED](https://intelxed.github.io/) disassembler.
+    - Set the environment variable `XED_ROOT` to point to the directory containing xed.
+
+### Windows
+- Not Supported.
+
+### MacOS
+- Not Supported.
+
 ## IRModeler Execute Command and Example
 
 ```
