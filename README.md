@@ -1,6 +1,9 @@
 # JITCIRModeler
 Just-in-Time Compiler Intermediate Representation Modeler (JITCIRModeler)
 
+## Abstract
+Just-in-Time (JIT) compilers are widely used to improve the performance of interpreter-based language implementations by creating optimized code at runtime. However, bugs in the JIT compiler’s code manipulation and optimization can result in the generation of incorrect code. Such bugs can be difficult to diagnose and fix, and can result in exploitable vulnerabilities. Unfortunately, existing approaches to automatic bug localization do not carry over well to such bugs. This paper discusses a different approach to analyzing JIT compiler optimization behaviors, based on using dynamic analysis to construct abstract models of the JIT compiler’s optimizer and back end. By comparing the models obtained for buggy and non-buggy executions of the JIT compiler, we can pinpoint the components of the JIT compiler’s internal representation that have been affected by the bug; this can then be mapped back to identify the buggy code. Our experiments with two real bugs for Google V8 JIT compiler, TurboFan, show the utility and practicality of our approach.
+
 ## Publication
 
 HeuiChan Lim, Xiyu Kang, and Saumya Debray. 2022. Modeling code manipulation in JIT compilers. In Proceedings of the 11th ACM SIGPLAN International Workshop on the State Of the Art in Program Analysis (SOAP 2022). Association for Computing Machinery, New York, NY, USA, 9–15. https://doi.org/10.1145/3520313.3534656
@@ -18,6 +21,18 @@ HeuiChan Lim, Xiyu Kang, and Saumya Debray. 2022. Modeling code manipulation in 
 
 ### MacOS
 - Not Supported.
+
+### How to Install
+1. Install the required software.
+2. Clone the repository to the local directory.
+```
+$git clone git@github.com:hlim1/JITCIRModeler.git
+```
+3. Navigate to the `JITCIRModeler/IRModeler` directory.
+4. Make
+```
+$make
+```
 
 ## IRModeler Execute Command and Example
 
