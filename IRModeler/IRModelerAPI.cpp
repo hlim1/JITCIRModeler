@@ -158,6 +158,8 @@ map<int,RegInfo> targetDesRegs;  // targetDesRegsKey to RegInfo object.
 map<int,UINT32> fnCallRet;
 int fnCallRetId = 0;
 
+PIN_LOCK fnCallRetLock;
+
 RegInfo srcRegsHolder[MAX_REGS];
 RegInfo desRegsHolder[MAX_REGS];
 int srcRegSize = 0;
@@ -1126,6 +1128,7 @@ void printUINT8(UINT8* arr, UINT32 size) {
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  */
+/*
 void recordFnCallRet(UINT32 fnId) {
 
     if (fnCallRetId == 0 && fnId != 0) {
@@ -1141,6 +1144,24 @@ void recordFnCallRet(UINT32 fnId) {
             fnCallRetId++;
         }
     }
+}
+*/
+void recordFnCallRet(UINT32 fnId)
+{
+    if (fnId == 0) return;
+
+    PIN_GetLock(&fnCallRetLock, 0);
+
+    if (fnCallRetId == 0) {
+        fnCallRet[fnCallRetId++] = fnId;
+    } else {
+        // avoid operator[] lookup side effects if you can, but keep minimal change for now
+        if (fnCallRet[fnCallRetId - 1] != fnId) {
+            fnCallRet[fnCallRetId++] = fnId;
+        }
+    }
+
+    PIN_ReleaseLock(&fnCallRetLock);
 }
 
 /**
@@ -1330,19 +1351,25 @@ bool analyzeRecords(
     // Keep tracks of source register information of the node allocator function instructions
     // separately.
     if (is_former_range || fnInAllocs(fn)) {
-        for (int i = 0; i < srcRegSize; i++) {
-            assert (i < MAX_REGS);
-            RegInfo srcReg = srcRegsHolder[i];
-            assert(targetSrcRegs.size()+1 < targetSrcRegs.max_size());
-            targetSrcRegs[targetSrcRegsKey] = srcReg;
-            targetSrcRegsKey++;
+        // Clamp sizes to avoid out-of-bounds when asserts are disabled.
+        const int nSrc = (srcRegSize < MAX_REGS) ? srcRegSize : MAX_REGS;
+        for (int i = 0; i < nSrc; i++) {
+          targetSrcRegs[targetSrcRegsKey++] = srcRegsHolder[i];
         }
-        for (int j = 0; j < desRegSize; j++) {
-            assert (j < MAX_REGS);
-            RegInfo desReg = desRegsHolder[j];
-            assert(targetDesRegs.size()+1 < targetDesRegs.max_size());
-            targetDesRegs[targetDesRegsKey] = desReg;
-            targetDesRegsKey++;
+        if (srcRegSize > MAX_REGS) {
+          std::cerr << "WARN: srcRegSize=" << srcRegSize
+            << " > MAX_REGS=" << MAX_REGS
+            << " (clamped)" << std::endl;
+        }
+
+        const int nDes = (desRegSize < MAX_REGS) ? desRegSize : MAX_REGS;
+        for (int j = 0; j < nDes; j++) {
+          targetDesRegs[targetDesRegsKey++] = desRegsHolder[j];
+        }
+        if (desRegSize > MAX_REGS) {
+          std::cerr << "WARN: desRegSize=" << desRegSize
+            << " > MAX_REGS=" << MAX_REGS
+            << " (clamped)" << std::endl;
         }
     }
 
@@ -1355,12 +1382,29 @@ bool analyzeRecords(
     // If the instruction has memory read, populate the source register
     // information to the MR tracker object.
     if (populate_regs) {
-        for (int i = 0; i < srcRegSize; i++) {
-            assert(i < MAX_REGS);
-            reads[lastMemReadLoc].srcRegs[i] = srcRegsHolder[i];
+        // If lastMemReadLoc can ever be missing, guard it (optional but safer).
+        auto it = reads.find(lastMemReadLoc);
+        if (it == reads.end()) {
+          std::cerr << "WARN: populate_regs but lastMemReadLoc not found: "
+            << std::hex << lastMemReadLoc << std::dec << std::endl;
+          populate_regs = false;
+        } else {
+          const int nSrc = (srcRegSize < MAX_REGS) ? srcRegSize : MAX_REGS;
+
+          for (int i = 0; i < nSrc; i++) {
+            it->second.srcRegs[i] = srcRegsHolder[i];
+          }
+          it->second.regSize = nSrc;
+
+          if (srcRegSize > MAX_REGS) {
+            std::cerr << "WARN: srcRegSize=" << srcRegSize
+              << " > MAX_REGS=" << MAX_REGS
+              << " (clamped for reads[" << std::hex << lastMemReadLoc
+              << std::dec << "])" << std::endl;
+          }
+
+          populate_regs = false;
         }
-        reads[lastMemReadLoc].regSize = srcRegSize;
-        populate_regs = false;
     }
 
     memset(srcRegsHolder, 0, srcRegSize);
@@ -2508,7 +2552,9 @@ void write2Json() {
             jsonFile << "               \"" << dec << itinstInfo->first << "\": {" << endl;
             jsonFile << "                   \"address\":" << dec << (itinstInfo->second).address << "," << endl;
             jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
-            jsonFile << "," << endl;
+            // DEBUG
+            //jsonFile << "," << endl;
+            jsonFile << ", ";
             jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
             string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
             jsonFile << "                   \"binary\":\"" << binString << "\"," << endl;

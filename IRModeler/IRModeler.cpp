@@ -225,7 +225,10 @@ void insInstrumentation(INS ins, void *v) {
         }
 
         // INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) recordFnCallRet, IARG_UINT32, fnId);
-        recordFnCallRet(fnId);
+        // recordFnCallRet(fnId);
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)recordFnCallRet,
+               IARG_UINT32, fnId,
+               IARG_END);
 
         // Check whether or not the current instruction is an instruction for node allocator
         // function.
@@ -366,6 +369,8 @@ int main(int argc, char *argv[]) {
         cerr << KNOB_BASE::StringKnobSummary() << endl;
         return -1;
     }
+
+    PIN_InitLock(&fnCallRetLock);
 
     checkSelections();
 

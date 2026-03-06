@@ -8,6 +8,8 @@
 #include "StringTable.h"
 #include "IR.h"
 
+extern PIN_LOCK fnCallRetLock;
+
 const UINT32  UINT32_INVALID  = -1;
 const ADDRINT ADDRINT_INVALID = -1;
 const int     INT_INVALID     = -1;
