@@ -24,6 +24,7 @@ extern ShadowMemory mem;
 extern PIN_MUTEX traceLock;
 extern PIN_MUTEX dataLock;
 extern PIN_MUTEX errorLock;
+extern PIN_MUTEX modelLock;
 extern TLS_KEY tlsKey;
 
 #endif

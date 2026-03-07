@@ -33,10 +33,15 @@ string emptyStr = "";
 
 ShadowMemory mem;
 
-PIN_MUTEX traceLock;
-PIN_MUTEX dataLock;
-PIN_MUTEX errorLock;
-TLS_KEY tlsKey;
+PIN_MUTEX traceLock;   // Protects global tracing metadata (e.g., eventId, instruction.id) to maintain correct event ordering across threads.
+
+PIN_MUTEX dataLock;    // Protects shared runtime data structures (e.g., memory trackers or global analysis data) that may be updated by multiple threads.
+
+PIN_MUTEX errorLock;   // Serializes error reporting/logging so that messages from multiple threads do not interleave and corrupt the output.
+
+PIN_MUTEX modelLock;   // Protects the IR modeling state (e.g., IRGraph, register buffers, node construction data) from concurrent modification.
+
+TLS_KEY tlsKey;        // Thread-local storage key used to access per-thread ThreadData objects maintained by the Pintool.
 
 /**
  * Function: extraceFilename

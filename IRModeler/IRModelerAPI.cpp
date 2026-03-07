@@ -1381,6 +1381,9 @@ bool analyzeRecords(
     // Thread-local state for this thread.
     ThreadData &data = tls[tid];
 
+    // Protect shared IR-modeling state.
+    PIN_MutexLock(&modelLock);
+
     /**
      * Detect whether execution has entered the node creation range.
      *
@@ -1433,9 +1436,11 @@ bool analyzeRecords(
         }
 
         if (srcRegSize > MAX_REGS) {
+            PIN_MutexLock(&errorLock);
             std::cerr << "WARN: srcRegSize=" << srcRegSize
                       << " > MAX_REGS=" << MAX_REGS
                       << " (clamped)" << std::endl;
+            PIN_MutexUnlock(&errorLock);
         }
 
         const int nDes = (desRegSize < MAX_REGS) ? desRegSize : MAX_REGS;
@@ -1445,9 +1450,11 @@ bool analyzeRecords(
         }
 
         if (desRegSize > MAX_REGS) {
+            PIN_MutexLock(&errorLock);
             std::cerr << "WARN: desRegSize=" << desRegSize
                       << " > MAX_REGS=" << MAX_REGS
                       << " (clamped)" << std::endl;
+            PIN_MutexUnlock(&errorLock);
         }
     }
 
@@ -1477,10 +1484,10 @@ bool analyzeRecords(
         auto it = reads.find(lastMemReadLoc);
 
         if (it == reads.end()) {
-
+            PIN_MutexLock(&errorLock);
             std::cerr << "WARN: populate_regs but lastMemReadLoc not found: "
                       << std::hex << lastMemReadLoc << std::dec << std::endl;
-
+            PIN_MutexUnlock(&errorLock);
             populate_regs = false;
 
         } else {
@@ -1494,11 +1501,13 @@ bool analyzeRecords(
             it->second.regSize = nSrc;
 
             if (srcRegSize > MAX_REGS) {
+                PIN_MutexLock(&errorLock);
                 std::cerr << "WARN: srcRegSize=" << srcRegSize
                           << " > MAX_REGS=" << MAX_REGS
                           << " (clamped for reads[" << std::hex
                           << lastMemReadLoc << std::dec << "])"
                           << std::endl;
+                PIN_MutexUnlock(&errorLock);
             }
 
             populate_regs = false;
@@ -1516,6 +1525,8 @@ bool analyzeRecords(
 
     memset(desRegsHolder, 0, sizeof(RegInfo) * desRegSize);
     desRegSize = 0;
+
+    PIN_MutexUnlock(&modelLock);
 
     /**
      * Update global tracing metadata.
@@ -2664,7 +2675,8 @@ void write2Json() {
             jsonFile << "                   \"address\":" << dec << (itinstInfo->second).address << "," << endl;
             jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
             jsonFile << "," << endl;
-            jsonFile << ", ";
+            // DEBUG
+            // jsonFile << ", ";
             jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
             string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
             jsonFile << "                   \"binary\":\"" << binString << "\"," << endl;
