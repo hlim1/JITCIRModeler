@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 using std::cout;
 using std::cerr;
@@ -549,15 +550,7 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
  **/
 bool isMemoryWriteLoc(ADDRINT value) {
 
-    bool isMemoryWriteLoc = true;
-
-    map<ADDRINT,MWInst>::iterator it;
-    it = writes.find(value);
-    if (it != writes.end()) {
-        isMemoryWriteLoc = false;
-    }
-
-    return isMemoryWriteLoc;
+    return writes.find(value) != writes.end();
 }
 
 /**
@@ -625,7 +618,7 @@ UINT8* addrintTouint8(ADDRINT target, UINT32 size) {
  * Output: String type converted value.
  **/
 string uint8Tostring(UINT8* target, ADDRINT size) {
-    ostringstream strStream;
+    std::ostringstream strStream;
     for (int i = size-1; i > 0; i--) {
         strStream << hex << (int)target[i] << " ";
     }
@@ -1128,24 +1121,6 @@ void printUINT8(UINT8* arr, UINT32 size) {
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None.
  */
-/*
-void recordFnCallRet(UINT32 fnId) {
-
-    if (fnCallRetId == 0 && fnId != 0) {
-        fnCallRet[fnCallRetId] = fnId;
-        fnCallRetId++;
-    }
-    else {
-        assert(fnCallRetId >= 0);
-        map<int,UINT32>::iterator it;
-        it = fnCallRet.find(fnCallRetId);
-        if (fnCallRet[fnCallRetId-1] != fnId && fnId != 0 && it == fnCallRet.end()) {
-            fnCallRet[fnCallRetId] = fnId;
-            fnCallRetId++;
-        }
-    }
-}
-*/
 void recordFnCallRet(UINT32 fnId)
 {
     if (fnId == 0) return;
@@ -1156,8 +1131,12 @@ void recordFnCallRet(UINT32 fnId)
         fnCallRet[fnCallRetId++] = fnId;
     } else {
         // avoid operator[] lookup side effects if you can, but keep minimal change for now
-        if (fnCallRet[fnCallRetId - 1] != fnId) {
-            fnCallRet[fnCallRetId++] = fnId;
+        //if (fnCallRet[fnCallRetId - 1] != fnId) {
+        //    fnCallRet[fnCallRetId++] = fnId;
+        //}
+        std::map<int, UINT32>::iterator prev = fnCallRet.find(fnCallRetId - 1);
+        if (prev == fnCallRet.end() || prev->second != fnId) {
+            fnCallRet.insert(std::make_pair(fnCallRetId++, fnId));
         }
     }
 
@@ -2275,7 +2254,7 @@ void recordRegState(THREADID tid, const CONTEXT *ctxt) {
  * Output: None
  **/
 VOID threadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, void *v) {
-    if(tid >= maxThreads) {
+    if(tid < 0 || static_cast<UINT32>(tid) >= maxThreads) {
         fprintf(stderr, "More than %u threads are being used", maxThreads);
         exit(1);
     }

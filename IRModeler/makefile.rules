@@ -11,7 +11,7 @@ PIN_TOOL_CXXFLAGS := $(TOOL_CXXFLAGS) -I../shared
 PIN_TOOL_CFLAGS := $(TOOL_CFLAGS) -I../shared
 
 OBJECT_ROOTS := Trace ShadowMemory PinLynxReg RegVector StringTable IRModelerAPI Helpers 
-TOOL_CXXFLAGS += -D_FILE_OFFSET_BITS=64 -std=c++0x -I../shared -DDATA_OPS 
+TOOL_CXXFLAGS += -D_FILE_OFFSET_BITS=64 -std=c++11 -I../shared -DDATA_OPS 
 
 ##############################################################
 #
