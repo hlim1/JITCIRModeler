@@ -31,7 +31,7 @@ using std::ostringstream;
 
 // This will need to be adjusted if there are more than 16 threads, 
 // but this is faster than Pin's TLS
-const UINT32 maxThreads = 16;
+const THREADID maxThreads = 16;
 
 StringTable strTable;
 const RegVector emptyRegVector;
@@ -71,9 +71,9 @@ UINT8 *dataBufPos = dataBuf;
 // classes with different privacy rules so you can have functions)
 struct ThreadData {
     ThreadData() :
-            eventId(0), pos(NULL), memWriteAddr(0), memWriteSize(0), destRegs(NULL), destFlags(0), print(false),
-            initialized(false), predSrcId(0), predFuncId(0), predAddr(0), dataPos(NULL), printBinary(NULL), 
-            binary(NULL) {}
+        eventId(0), pos(NULL), memWriteAddr(0), memWriteSize(0), destRegs(NULL), destFlags(0), print(false),
+        initialized(false), predSrcId(0), predFuncId(0), predAddr(0), dataPos(NULL), printBinary(NULL), 
+        binary(NULL) {}
     UINT64 eventId;
     UINT8 buffer[40];
     UINT8 *pos;
@@ -519,7 +519,7 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                     edgeNodeId == INT_INVALID &&            // write value is non-edge node address
                     write.location != node->intAddress &&   // write value is not node address
                     write.location != node->opcodeAddress   // write value is not node opcode address
-            ) {
+                    ) {
                 bool is_direct = isMemoryWriteLoc(write.value);
                 if (is_direct) {
                     // Compute the distance between the block head and the written location,
@@ -583,14 +583,14 @@ bool checkRAXValue(UINT8 *value) {
  * Output: ADDRINT type converted value.
  **/
 ADDRINT uint8Toaddrint(UINT8* target, UINT32 size) {
-    
+
     assert (size > 0);
 
     ADDRINT to = 0;
     for (int i = size-1; i >= 0; i--) {
         to = (to << 8) | target[i];
     }
-    
+
     return to;
 }
 
@@ -886,7 +886,7 @@ ADDRINT get_size_spm(ADDRINT address) {
                     if (
                             desReg.instOp == srcReg.instOp && 
                             desReg.value - srcReg.value < MAX_NODE_SIZE
-                    ) {
+                       ) {
                         size = desReg.value - srcReg.value;
                         break;
                     }
@@ -931,7 +931,7 @@ bool checkCopiedValue(UINT8 *value, UINT32 size) {
  *  - fixed (UINT8*): Fixed value.
  *  - size *UINT32): Size of value.
  * Output: None.
-*/
+ */
 void fixCopyValue(UINT8 *buggy, UINT8 *fixed, UINT32 size) {
 
     assert (sizeof(buggy) == size);
@@ -1128,12 +1128,8 @@ void recordFnCallRet(UINT32 fnId)
     PIN_GetLock(&fnCallRetLock, 0);
 
     if (fnCallRetId == 0) {
-        fnCallRet[fnCallRetId++] = fnId;
+        fnCallRet.insert(std::make_pair(fnCallRetId++, fnId));
     } else {
-        // avoid operator[] lookup side effects if you can, but keep minimal change for now
-        //if (fnCallRet[fnCallRetId - 1] != fnId) {
-        //    fnCallRet[fnCallRetId++] = fnId;
-        //}
         std::map<int, UINT32>::iterator prev = fnCallRet.find(fnCallRetId - 1);
         if (prev == fnCallRet.end() || prev->second != fnId) {
             fnCallRet.insert(std::make_pair(fnCallRetId++, fnId));
@@ -1143,48 +1139,69 @@ void recordFnCallRet(UINT32 fnId)
     PIN_ReleaseLock(&fnCallRetLock);
 }
 
-/**
- * Function: recordSrcRegs
- * Description: Records information on source registers of an instruction.
- * Input:
- *  - tid (THREADID): Thread ID struct object.
- *  - ctx (CONTEXT*): A structure that keeps architectural state of the processor.
- *  - srcRegs (RegVector*): Source register information holder.
- *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
- *  - instOpcode (UINT32): Instruction opcode.
- * Output: None
- **/
+/*
+ * recordSrcRegs
+ *
+ * Pin analysis routine that records the values of all source registers
+ * used by the current instruction.
+ *
+ * Parameters
+ *   tid        : Pin thread ID
+ *   ctx        : current CPU context
+ *   srcRegs    : vector of source registers provided by instrumentation
+ *   fnId       : function identifier of the instruction
+ *   instOpcode : opcode of the instruction
+ *
+ * Behavior
+ *   - Reads each source register value from the execution context.
+ *   - Stores the register information into srcRegsHolder[].
+ *   - srcRegSize keeps track of how many source registers were recorded.
+ *
+ * Safety
+ *   - MAX_REGS prevents overflowing srcRegsHolder[].
+ *   - Values are clamped if instruction has too many registers.
+ */
 void PIN_FAST_ANALYSIS_CALL recordSrcRegs(
-        THREADID tid, const CONTEXT *ctx, const RegVector *srcRegs, UINT32 fnId,
-        UINT32 instOpcode) {
-
-    // In case srcRegSize was not reset, reset it to zero.
+        THREADID tid,
+        const CONTEXT *ctx,
+        const RegVector *srcRegs,
+        UINT32 fnId,
+        UINT32 instOpcode)
+{
+    // reset register counter for this instruction
     srcRegSize = 0;
 
-    UINT8 buf[LARGEST_REG_SIZE];
-    for(UINT8 i = 0; i < srcRegs->getSize(); i++) {
+    // iterate over all source registers reported by Pin
+    for (UINT8 i = 0; i < srcRegs->getSize(); i++) {
+
+        // prevent writing beyond srcRegsHolder[]
+        if (srcRegSize >= MAX_REGS)
+            break;
+
+        // convert Lynx register to its full register form
         LynxReg lReg = srcRegs->at(i);
         LynxReg fullLReg = fullLynxReg(lReg);
+
         UINT32 fullSize = lynxRegSize(fullLReg);
         REG reg = LynxReg2Reg(fullLReg);
-        PIN_GetContextRegval(ctx, reg, buf);
 
-        UINT8 RegValue[fullSize];
-        PIN_SafeCopy(RegValue, buf, fullSize);
+        // temporary buffer for register value
+        UINT8 regValue[LARGEST_REG_SIZE];
+        memset(regValue, 0, sizeof(regValue));
 
-        ADDRINT regValueInt = uint8Toaddrint(RegValue, fullSize);
+        // read register value from context
+        PIN_GetContextRegval(ctx, reg, regValue);
 
-        // Create a new srcRegs object.
+        // populate RegInfo structure
         RegInfo srcReg;
         srcReg.instId = instruction.id;
         srcReg.fnId = fnId;
         srcReg.instOp = instOpcode;
         srcReg.lReg = fullLReg;
-        srcReg.value = regValueInt;
+        srcReg.value = uint8Toaddrint(regValue, fullSize);
 
-        assert (srcRegSize < MAX_REGS);
-        srcRegsHolder[srcRegSize] = srcReg;
-        srcRegSize++;
+        // store result
+        srcRegsHolder[srcRegSize++] = srcReg;
     }
 }
 
@@ -1278,8 +1295,9 @@ void check2MemRead(
  * Output: None
  **/
 void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
-    // For a memory write all we need to do is record information about it
-    // so after the instruction we can print it
+    if (tid >= maxThreads) return;
+    if (size > MAX_MEM_OP_SIZE) return;
+
     ThreadData &data = tls[tid];
     data.memWriteAddr = addr;
     data.memWriteSize = size;
@@ -1291,119 +1309,233 @@ void recordMemWrite(THREADID tid, ADDRINT addr, UINT32 size) {
 
 /**
  * Function: analyzeRecords
- * Description: This function analyzes all the recorded information for the instruction.
- * Input:
- *  - tid (THREADID): Thread ID struct object.
- *  - ctx (CONTEXT*): A structure that keeps architectural state of the processor.
- *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
- *  - opcode (UINT32): Instruction opcode.
- *  - is_create(bool): Flag indicating whether the current instruction belongs node creator
- *  function or not.
- *  - system_id (UINT32): JIT compiler system ID.
- * Output: true if labeled, false otherwise.
- **/
+ *
+ * Description:
+ *  This function performs the final analysis step for an instrumented instruction.
+ *  Earlier instrumentation callbacks record partial information such as:
+ *
+ *      - source register values
+ *      - destination register writes
+ *      - memory reads
+ *      - memory writes
+ *
+ *  analyzeRecords() collects these pieces and processes them together to produce
+ *  a consistent event for the instruction.
+ *
+ *  In particular, it:
+ *      1. Tracks whether execution is currently inside a node-creation range.
+ *      2. Processes register writes for allocator functions (mainly RAX).
+ *      3. Records source and destination register values for allocator-related
+ *         instructions.
+ *      4. Analyzes memory writes captured earlier.
+ *      5. Attaches source-register information to memory-read events.
+ *      6. Updates global instruction/event identifiers.
+ *
+ *  The function also resets temporary per-instruction buffers used to collect
+ *  register information.
+ *
+ * Inputs:
+ *  - tid (THREADID)
+ *        Pin thread identifier.
+ *
+ *  - ctx (CONTEXT*)
+ *        Current architectural state of the processor. Used to retrieve
+ *        register values.
+ *
+ *  - fnId (UINT32)
+ *        Identifier of the function that contains the current instruction.
+ *
+ *  - opcode (UINT32)
+ *        Instruction opcode.
+ *
+ *  - is_create (bool)
+ *        Indicates whether the instruction belongs to a node-creator function.
+ *
+ *  - binary (UINT8*)
+ *        Raw instruction bytes.
+ *
+ *  - instSize (ADDRINT)
+ *        Instruction size in bytes.
+ *
+ *  - system_id (UINT32)
+ *        Identifier of the JIT compiler system being modeled.
+ *
+ *  - addr (ADDRINT)
+ *        Address of the currently executed instruction.
+ *
+ * Output:
+ *  - Returns true if the instruction is labeled.
+ *  - Returns false otherwise.
+ */
 bool analyzeRecords(
-        THREADID tid, const CONTEXT *ctx, UINT32 fnId, 
-        UINT32 opcode, bool is_create, UINT8* binary, 
+        THREADID tid, const CONTEXT *ctx, UINT32 fnId,
+        UINT32 opcode, bool is_create, UINT8* binary,
         ADDRINT instSize, UINT32 system_id, ADDRINT addr
 ) {
 
+    // Defensive check to prevent invalid TLS access.
+    if (tid < 0 || tid >= maxThreads) {
+        return false;
+    }
+
+    // Thread-local state for this thread.
     ThreadData &data = tls[tid];
 
-    // Check if current instruction is within the node creation range.
-    // If true, set the is_former_range, which is the variable to keep track of the range, to true.
+    /**
+     * Detect whether execution has entered the node creation range.
+     *
+     * is_create is set by instrumentation when the instruction belongs to
+     * a node allocator function. Once we observe such an instruction, the
+     * flag is_former_range remains true for the remainder of the range.
+     */
     if (!is_former_range && is_create) {
         is_former_range = true;
     }
 
-    // Retrieve the function name.
+    // Retrieve the function name associated with fnId.
     string fn = strTable.get(fnId);
 
-    // If the instruction has register write, then analyze register write, e.g., W:RAX=...
-    // Note: We only care about the last RAX register value of node allocator
-    // function instructions.
-    if(fnInAllocs(fn) && data.destRegs != NULL) {
+    // Check whether this function is a node allocator.
+    bool in_alloc_fn = fnInAllocs(fn);
+
+    /**
+     * Analyze register writes for allocator functions.
+     *
+     * We only care about the last RAX value produced by allocator functions
+     * because it contains the address of the newly created IR node.
+     *
+     * data.destRegs is populated by earlier instrumentation callbacks.
+     */
+    if (in_alloc_fn && data.destRegs != NULL) {
         analyzeRegWrites(tid, ctx, fnId, opcode);
+
+        // Consume the pending register-write record so that it is processed
+        // only once for this instruction.
         data.destRegs = NULL;
     }
 
-    // Keep tracks of source register information of the node allocator function instructions
-    // separately.
-    if (is_former_range || fnInAllocs(fn)) {
-        // Clamp sizes to avoid out-of-bounds when asserts are disabled.
+    /**
+     * Track source and destination register values for allocator instructions.
+     *
+     * These registers are stored temporarily in srcRegsHolder and desRegsHolder
+     * during earlier instrumentation callbacks.
+     *
+     * We copy them into the target register lists when the instruction is
+     * within the node creation range or belongs to an allocator function.
+     */
+    if (is_former_range || in_alloc_fn) {
+
+        // Clamp to MAX_REGS to prevent buffer overflow.
         const int nSrc = (srcRegSize < MAX_REGS) ? srcRegSize : MAX_REGS;
+
         for (int i = 0; i < nSrc; i++) {
-          targetSrcRegs[targetSrcRegsKey++] = srcRegsHolder[i];
+            targetSrcRegs[targetSrcRegsKey++] = srcRegsHolder[i];
         }
+
         if (srcRegSize > MAX_REGS) {
-          std::cerr << "WARN: srcRegSize=" << srcRegSize
-            << " > MAX_REGS=" << MAX_REGS
-            << " (clamped)" << std::endl;
+            std::cerr << "WARN: srcRegSize=" << srcRegSize
+                      << " > MAX_REGS=" << MAX_REGS
+                      << " (clamped)" << std::endl;
         }
 
         const int nDes = (desRegSize < MAX_REGS) ? desRegSize : MAX_REGS;
+
         for (int j = 0; j < nDes; j++) {
-          targetDesRegs[targetDesRegsKey++] = desRegsHolder[j];
+            targetDesRegs[targetDesRegsKey++] = desRegsHolder[j];
         }
+
         if (desRegSize > MAX_REGS) {
-          std::cerr << "WARN: desRegSize=" << desRegSize
-            << " > MAX_REGS=" << MAX_REGS
-            << " (clamped)" << std::endl;
+            std::cerr << "WARN: desRegSize=" << desRegSize
+                      << " > MAX_REGS=" << MAX_REGS
+                      << " (clamped)" << std::endl;
         }
     }
 
-    // If the instruction has memory write, analyze memory write, e.g., MW[..]=...
-    if(data.memWriteSize != 0) {
-        analyzeMemWrites(tid, fnId, is_former_range, binary, instSize, system_id, addr);
-        data.memWriteSize = 0; 
+    /**
+     * Process memory write events.
+     *
+     * Earlier instrumentation records the write address and size in
+     * ThreadData::memWriteSize. If a write occurred, we analyze it here
+     * and reset the flag.
+     */
+    if (data.memWriteSize != 0) {
+        if (binary != NULL && instSize > 0 && instSize <= 32) {
+            analyzeMemWrites(tid, fnId, is_former_range,
+                             binary, instSize, system_id, addr);
+        }
+        data.memWriteSize = 0;
     }
 
-    // If the instruction has memory read, populate the source register
-    // information to the MR tracker object.
+    /**
+     * Attach source-register information to memory-read events.
+     *
+     * Memory reads are recorded earlier, but their source registers
+     * are attached here once they are available.
+     */
     if (populate_regs) {
-        // If lastMemReadLoc can ever be missing, guard it (optional but safer).
+
         auto it = reads.find(lastMemReadLoc);
+
         if (it == reads.end()) {
-          std::cerr << "WARN: populate_regs but lastMemReadLoc not found: "
-            << std::hex << lastMemReadLoc << std::dec << std::endl;
-          populate_regs = false;
+
+            std::cerr << "WARN: populate_regs but lastMemReadLoc not found: "
+                      << std::hex << lastMemReadLoc << std::dec << std::endl;
+
+            populate_regs = false;
+
         } else {
-          const int nSrc = (srcRegSize < MAX_REGS) ? srcRegSize : MAX_REGS;
 
-          for (int i = 0; i < nSrc; i++) {
-            it->second.srcRegs[i] = srcRegsHolder[i];
-          }
-          it->second.regSize = nSrc;
+            const int nSrc = (srcRegSize < MAX_REGS) ? srcRegSize : MAX_REGS;
 
-          if (srcRegSize > MAX_REGS) {
-            std::cerr << "WARN: srcRegSize=" << srcRegSize
-              << " > MAX_REGS=" << MAX_REGS
-              << " (clamped for reads[" << std::hex << lastMemReadLoc
-              << std::dec << "])" << std::endl;
-          }
+            for (int i = 0; i < nSrc; i++) {
+                it->second.srcRegs[i] = srcRegsHolder[i];
+            }
 
-          populate_regs = false;
+            it->second.regSize = nSrc;
+
+            if (srcRegSize > MAX_REGS) {
+                std::cerr << "WARN: srcRegSize=" << srcRegSize
+                          << " > MAX_REGS=" << MAX_REGS
+                          << " (clamped for reads[" << std::hex
+                          << lastMemReadLoc << std::dec << "])"
+                          << std::endl;
+            }
+
+            populate_regs = false;
         }
     }
 
-    memset(srcRegsHolder, 0, srcRegSize);
+    /**
+     * Clear temporary per-instruction register buffers.
+     *
+     * srcRegsHolder and desRegsHolder are used only for the current instruction.
+     * They are reset here before the next instruction executes.
+     */
+    memset(srcRegsHolder, 0, sizeof(RegInfo) * srcRegSize);
     srcRegSize = 0;
-    memset(desRegsHolder, 0, desRegSize);
+
+    memset(desRegsHolder, 0, sizeof(RegInfo) * desRegSize);
     desRegSize = 0;
 
+    /**
+     * Update global tracing metadata.
+     *
+     * eventId tracks the order of events across all threads.
+     * instruction.id tracks the unique instruction identifier.
+     */
     PIN_MutexLock(&traceLock);
+
     data.eventId = eventId;
     eventId++;
 
-    // Update instruction id
     instruction.id++;
 
     PIN_MutexUnlock(&traceLock);
 
-    //mark that we printed the instruction
-    bool labeled = false;
+    // Mark that this instruction was not printed/labeled.
     data.print = false;
-    return labeled;
+
+    return false;
 }
 
 /**
@@ -1417,7 +1549,7 @@ bool analyzeRecords(
  * Output: None.
  **/
 void analyzeRegWrites(THREADID tid, const CONTEXT *ctx, UINT32 fnId, UINT32 opcode) {
-    
+
     ThreadData &data = tls[tid];
 
     desRegSize = 0;
@@ -1669,7 +1801,7 @@ void updateLogInfo(Node *node, ADDRINT addr, UINT32 fnId, UINT8* binary, ADDRINT
 bool isSameAccess(Node *node, InstInfo instInfo) {
 
     bool is_same = false;
-    
+
     // Get the node's last fnInfo.
     InstInfo latest = node->instInfo[node->lastInfoId];
 
@@ -1680,7 +1812,7 @@ bool isSameAccess(Node *node, InstInfo instInfo) {
             latest.fnCallRetId == instInfo.fnCallRetId
             && latest.accessType == instInfo.accessType
 
-    ) {
+       ) {
         is_same = true;
     }
     else {
@@ -1917,7 +2049,7 @@ void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* bina
         if (
                 (readAddr >= node->blockHead && readAddr < node->blockTail) ||
                 (valueInt >= node->blockHead && valueInt < node->blockTail)
-        ) {
+           ) {
             nodeId = node->id;
             is_node_block = true;
             // Compute the accessed (evaluated) node offset.
@@ -2173,9 +2305,9 @@ void contextChange(THREADID tid, CONTEXT_CHANGE_REASON reason, const CONTEXT *fr
             PIN_MutexUnlock(&traceLock);
         }
         /*Causing issues now because destRegs and destFlags are available, and apparently are not in the context
-         else {
-         printIns(tid, fromCtx);
-         }*/
+          else {
+          printIns(tid, fromCtx);
+          }*/
     }
 }
 
@@ -2190,44 +2322,44 @@ void recordRegState(THREADID tid, const CONTEXT *ctxt) {
 
 #if defined(TARGET_MIC) || defined(TARGET_IA32E)
     for(UINT32 lReg = LYNX_GR64_FIRST; lReg <= LYNX_GR64_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
 #endif
 #if defined(TARGET_IA32)
     for(UINT32 lReg = LYNX_X86_GR32_FIRST; lReg <= LYNX_X86_GR32_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
 #endif
 #if defined(TARGET_IA32) || defined(TARGET_IA32E)
     for(UINT32 lReg = LYNX_YMM_X86_FIRST; lReg <= LYNX_YMM_X86_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
 #endif
 #if defined(TARGET_IA32E)
     for(UINT32 lReg = LYNX_YMM_X64_FIRST; lReg <= LYNX_YMM_X64_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
 #endif
 #if defined(TARGET_MIC)
     for(UINT32 lReg = LYNX_ZMM_FIRST; lReg <= LYNX_ZMM_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
     for(UINT32 lReg = LYNX_K_MASK_FIRST; lReg <= LYNX_K_MASK_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
 #endif
 
     for(UINT32 lReg = LYNX_SEG_FIRST; lReg <= LYNX_SEG_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
     for(UINT32 lReg = LYNX_SSE_FLG_FIRST; lReg <= LYNX_SSE_FLG_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
     for(UINT32 lReg = LYNX_FPU_FIRST; lReg <= LYNX_FPU_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
     for(UINT32 lReg = LYNX_FPU_STAT_FIRST; lReg <= LYNX_FPU_STAT_LAST; lReg++) {
-	    pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
+        pos = printDataReg(tid, pos, (LynxReg)lReg, ctxt, val);
     }
 
     //for some reason if I try to print these out, PIN will crash
@@ -2342,7 +2474,7 @@ void setupFile(UINT16 infoSelect) {
     entries[3].type = STR_TABLE;
 
     /*strncpy((char *) entries[4].name, "SEGMENT_LOADS", 15);
-    entries[4].type = SEGMENT_LOADS;*/
+      entries[4].type = SEGMENT_LOADS;*/
 
     strncpy((char *) entries[4].name, "INFO_SEL_HEAD", 15);
     entries[4].type = INFO_SEL_HEADER;
@@ -2531,8 +2663,7 @@ void write2Json() {
             jsonFile << "               \"" << dec << itinstInfo->first << "\": {" << endl;
             jsonFile << "                   \"address\":" << dec << (itinstInfo->second).address << "," << endl;
             jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
-            // DEBUG
-            //jsonFile << "," << endl;
+            jsonFile << "," << endl;
             jsonFile << ", ";
             jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
             string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
