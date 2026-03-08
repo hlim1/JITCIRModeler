@@ -7,6 +7,11 @@
 #define _LARGEFILE_SOURCE
 #define _FILE_OFFSET_BITS 64
 
+// UNCOMMENT THIS LINE FOR IRMODELER DEBUGGING.
+// #define DEBUG_JSON 
+// UNCOMMENT THIS LINE FOR MODELING SPIDERMONKEY IR.
+// #define SPM
+
 #include "PinLynxReg.h"
 #include "IRModelerAPI.h"
 #include "DataOpsDefs.h"
@@ -2519,7 +2524,6 @@ void write2Json() {
     int counter = 0;
 
     jsonFile << "{" << endl;
-    jsonFile << "   \"is_ir\": true," << endl;
     jsonFile << "   \"nodes\": [" << endl;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
         Node *node = IRGraph->nodes[i];
@@ -2532,8 +2536,11 @@ void write2Json() {
         else {
             jsonFile << "false," << endl;
         }
+        #ifdef DEBUG_JSON
         jsonFile << "           \"address\": \"" << hex << node->intAddress << "\"," << endl; 
+        #endif
         jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
+        #ifdef SPM
         jsonFile << "           \"is_nonIR\": ";
         if (node->is_nonIR) {
             jsonFile << "true," << endl;
@@ -2541,6 +2548,7 @@ void write2Json() {
         else {
             jsonFile << "false," << endl;
         }
+        #endif
         jsonFile << "           \"size\": " << dec << node->size << "," << endl; 
         // Write edge information.
         jsonFile << "           \"edges\": [";
@@ -2672,7 +2680,9 @@ void write2Json() {
         map<int, InstInfo>::iterator itinstInfo;
         for (itinstInfo = node->instInfo.begin(); itinstInfo != node->instInfo.end();) {
             jsonFile << "               \"" << dec << itinstInfo->first << "\": {" << endl;
+            #ifdef DEBUG_JSON
             jsonFile << "                   \"address\":" << dec << (itinstInfo->second).address << "," << endl;
+            #endif
             jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
             jsonFile << "," << endl;
             // DEBUG
@@ -2738,6 +2748,7 @@ void write2Json() {
         }
         counter++;
     }
+    #ifdef DEBUG_JSON
     jsonFile << "   }," << endl;
     // Print all memory writes happened during the JIT compilation.
     jsonFile << "   \"memory_writes\": {" << endl;
@@ -2766,6 +2777,7 @@ void write2Json() {
             jsonFile << endl;
         }
     }
+    #endif
     jsonFile << "   }" << endl;
     jsonFile << "}" << endl;
 }
@@ -2780,10 +2792,4 @@ void write2Json() {
 void endFile() {
     // Write IR to a file in JSON.
     write2Json();
-
-    //map<int,UINT32>::iterator it;
-    //cout << "Size: " << fnCallRet.size() << endl;
-    //for (it = fnCallRet.begin(); it != fnCallRet.end(); ++it) {
-    //    cout << dec << "(" << it->first << ", " << it->second << ")" << endl;
-    //}
 }
