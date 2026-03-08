@@ -20,7 +20,7 @@ enum Access {
 };
 
 struct InstInfo {
-    InstInfo(): fnCallRetId(0), accessType(INVALID) {}
+    InstInfo(): fnCallRetId(0), accessType(INVALID), phaseFnId(-1) {}
 
     ADDRINT address;    // Instruction address.
     int fnCallRetId;    // Function call-return id, i.e., index in the sequence.
@@ -28,6 +28,7 @@ struct InstInfo {
     UINT8* binary;      // Instruction in binary (opcode & operands).
     ADDRINT instSize;   // Instruction size.
     Access accessType;  // function access type.
+    UINT32 phaseFnId;
 };
 
 struct DirectValOpt {
@@ -55,7 +56,7 @@ struct Offset2Value {
 
 struct Node {
     Node() : 
-        id(-1), alive(true), opcode(-1), opcodeAddress(-1), is_nonIR(false), numberOfEdges(0), numberOfLocs(0), lastInfoId(0) {}
+        id(-1), alive(true), opcode(-1), opcodeAddress(-1), is_nonIR(false), numberOfEdges(0), numberOfLocs(0), lastInfoId(0), phaseFnId(-1) {}
 
     // Basic information.
     int     id;                            // node id = index of IRGraph->nodes.
@@ -85,6 +86,7 @@ struct Node {
     // Logging information.
     std::map<int, InstInfo> instInfo;      // track of the instructions accessed (mem. read/write) to this node.
     int lastInfoId;                        // track the ID assigned to the fnInfo added latest.
+    UINT32 phaseFnId;
 };
 
 struct IR {

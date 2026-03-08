@@ -135,6 +135,26 @@ const std::string NONIR_NODE_ALLOCATORS[2] = {
     "js::jit::MResumePoint::New"
 };
 
+const std::string PHASELIST[15] = {
+    "v8::internal::compiler::GraphBuilderPhase::Run",
+    "v8::internal::compiler::InliningPhase::Run",
+    "v8::internal::compiler::CopyMetadataForConcurrentCompilePhase::Run",
+    "v8::internal::compiler::TyperPhase::Run",
+    "v8::internal::compiler::TypedLoweringPhase::Run",
+    "v8::internal::compiler::LoopPeelingPhase::Run",
+    "v8::internal::compiler::LoadEliminationPhase::Run",
+    "v8::internal::compiler::EscapeAnalysisPhase::Run",
+    "v8::internal::compiler::GenericLoweringPhase::Run",
+    "v8::internal::compiler::EarlyOptimizationPhase::Run",
+    "v8::internal::compiler::EffectControlLinearizationPhase::Run",
+    "v8::internal::compiler::LateOptimizationPhase::Run",
+    "v8::internal::compiler::MemoryOptimizationPhase::Run",
+    "v8::internal::compiler::MachineOperatorOptimizationPhase::Run",
+    "v8::internal::compiler::InstructionSelectionPhase::Run"
+};
+
+const std::string V8PHASESUBSTRING = "Phase::Run";
+
 const int NODE_FORMERS_SIZE = 1;
 const int NODE_ALLOC_SIZE = 46;
 const int NODE_CREATORS_SIZE = 46;

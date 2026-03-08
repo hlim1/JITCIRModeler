@@ -224,6 +224,12 @@ void insInstrumentation(INS ins, void *v) {
             }
         }
 
+        if (fnStr.find(V8PHASESUBSTRING) != std::string::npos) {
+            INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)recordPhase,
+                IARG_UINT32, fnId,
+                IARG_END);
+        }
+
         // INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) recordFnCallRet, IARG_UINT32, fnId);
         // recordFnCallRet(fnId);
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)recordFnCallRet,

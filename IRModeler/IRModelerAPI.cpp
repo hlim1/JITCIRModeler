@@ -178,6 +178,8 @@ int targetSrcRegsKey = 0;
 int targetDesRegsKey = 0;
 bool is_former_range = false;
 
+UINT32 currentPhaseFnId = -1;
+
 /**
  * Function: constructModeledIRNode
  * Description: This function analyzes the collected memory/register reads and writes
@@ -1118,6 +1120,12 @@ void printUINT8(UINT8* arr, UINT32 size) {
 
 // =============================================================
 
+void recordPhase(UINT32 fnId) {
+    PIN_MutexLock(&modelLock);
+    currentPhaseFnId = fnId;
+    PIN_MutexUnlock(&modelLock);
+}
+
 /**
  * Function: recordFnCallRet
  * Description: Records function call-return sequences. The recording starts from the
@@ -1798,6 +1806,7 @@ void updateLogInfo(Node *node, ADDRINT addr, UINT32 fnId, UINT8* binary, ADDRINT
     memcpy(instInfo.binary, binary, instSize);
     instInfo.instSize = instSize;
     instInfo.accessType = accessType;
+    instInfo.phaseFnId = currentPhaseFnId;
 
     // Update the node's function info. map.
     assert((node->instInfo).size()+1 < (node->instInfo).max_size());
@@ -2688,6 +2697,7 @@ void write2Json() {
             // DEBUG
             // jsonFile << ", ";
             jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
+            jsonFile << "                   \"PhaseFnId\":" << dec << (itinstInfo->second).phaseFnId << "," << endl;
             string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
             jsonFile << "                   \"binary\":\"" << binString << "\"," << endl;
             jsonFile << "                   \"type\":" << dec << (itinstInfo->second).accessType << endl;

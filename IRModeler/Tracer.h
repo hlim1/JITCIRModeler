@@ -17,6 +17,7 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary,
 void check2MemRead(
         ADDRINT readAddr1, ADDRINT readAddr2, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr);
 void recordFnCallRet(UINT32 fnId);
+void recordPhase(UINT32 fnId);
 
 // Analysis functions
 bool analyzeRecords(
