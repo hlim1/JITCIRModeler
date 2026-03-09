@@ -527,7 +527,6 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                     write.location != node->intAddress &&   // write value is not node address
                     write.location != node->opcodeAddress   // write value is not node opcode address
                     ) {
-
                 if (write.location >= blockHead && write.location < blockTail) {
                     // Compute the distance between the block head and the written location,
                     // then write to node's offsets to track which locations are wrriten.
