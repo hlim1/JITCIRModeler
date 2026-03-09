@@ -241,6 +241,11 @@ void constructModeledIRNode(
     // Get initial (in)direct value assigned to the node block.
     get_init_block_locs(node, system_id);
 
+    // Populate initialEdges.
+    for (int i = 0; i < node->numberOfEdges; i++) {
+        node->initialEdges[i] = node->edgeNodes[i]->id;
+    }
+
     // Add node to IRGraph.
     assert(IRGraph->lastNodeId < MAX_NODES);
     IRGraph->nodes[IRGraph->lastNodeId] = node;
@@ -2564,6 +2569,7 @@ void write2Json() {
             jsonFile << "           \"opcode\": \"\",\n";
             jsonFile << "           \"size\": 0,\n";
             jsonFile << "           \"edges\": [],\n";
+            jsonFile << "           \"initialEdges\": [],\n";
             jsonFile << "           \"directValues\": {},\n";
             jsonFile << "           \"opcode_log\": {},\n";
             jsonFile << "           \"added\": {},\n";
@@ -2604,6 +2610,17 @@ void write2Json() {
             } else {
                 jsonFile << dec << INT_INVALID;
             }
+
+            if (edgeIndex < node->numberOfEdges - 1) {
+                jsonFile << ",";
+            }
+        }
+        jsonFile << "],\n";
+
+        // Write edge information.
+        jsonFile << "           \"initialEdges\": [";
+        for (int edgeIndex = 0; edgeIndex < node->numberOfEdges; ++edgeIndex) {
+            jsonFile << dec << node->initialEdges[edgeIndex];
 
             if (edgeIndex < node->numberOfEdges - 1) {
                 jsonFile << ",";

@@ -84,6 +84,7 @@ struct Node {
     UINT32  size;                          // size of a node.
     Node    *edgeNodes[MAX_NODES];         // list of nodes connected to this node.
     ADDRINT edgeAddrs[MAX_NODES];          // list of edge addresses.
+    int     initialEdges[MAX_NODES];       // list of intial edges.
     int     numberOfEdges;                 // number of edges.
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
