@@ -225,10 +225,10 @@ Records opcode updates performed during execution.
 }
 ```
 
-A new operand node was added.
+A new edge was added.
 
   `nodeId`     ID of the added node
-  `position`   Operand position
+  `position`   Position (index) in the `edges` array
 
 ------------------------------------------------------------------------
 
@@ -243,7 +243,10 @@ A new operand node was added.
 }
 ```
 
-An operand node was removed.
+An existing edge was removed.
+
+  `nodeId`     Remove ID of the node
+  `position`   Position (index) in the `edges` array
 
 ------------------------------------------------------------------------
 
@@ -259,11 +262,11 @@ An operand node was removed.
 }
 ```
 
-An operand node was replaced.
+An edge was replaced.
 
-  `from`       Original node
-  `to`         Replacement node
-  `position`   Operand position
+  `from`       Original node ID
+  `to`         Replacement node ID
+  `position`   Position (index) in the `edges` array
 
 ------------------------------------------------------------------------
 
@@ -302,6 +305,9 @@ Records modifications to values stored inside nodes.
 
 Records values read from the node during execution.
 
+    `offset`      Offset from node base
+    `value`      Value in the offset location
+
 ------------------------------------------------------------------------
 
 ### Instruction Access Log
@@ -322,7 +328,7 @@ Logs instructions that accessed the node.
 
   `fnCallRetId`   Unique identifier of a function call-return pair
   `fnId`          Function ID
-  `PhaseFnId`     Compiler phase function ID
+  `PhaseFnId`     JIT Compiler optimization phase function ID
   `binary`        Instruction opcode and operands (DEBUG mode only)
   `type`          Access type identifier
 
