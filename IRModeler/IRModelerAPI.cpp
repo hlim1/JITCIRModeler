@@ -2082,22 +2082,15 @@ void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* bina
         Node *node = IRGraph->nodes[i];
         // Check if the memory read access happens to some node block.
         // readAddr: Location where reading the value from.
-        // valueInt: Value read from the readAddr (location).
-        if (
-                (readAddr >= node->blockHead && readAddr < node->blockTail) ||
-                (valueInt >= node->blockHead && valueInt < node->blockTail)
-           ) {
+        if (readAddr >= node->blockHead && readAddr < node->blockTail) {
             nodeId = node->id;
             is_node_block = true;
+
             // Compute the accessed (evaluated) node offset.
             ADDRINT offset = ADDRINT_INVALID;
-            if (readAddr >= node->blockHead && readAddr < node->blockTail) {
-                offset = readAddr - node->blockHead;
-            }
-            else {
-                offset = valueInt - node->blockHead;
-            }
+            offset = readAddr - node->blockHead;
             assert (offset != ADDRINT_INVALID);
+
             // Update the node's instOrder2offset with the computed offset.
             Offset2Value offset2value;
             offset2value.offset = offset;
