@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-group_nodes.py
+group_nodes_by_phase.py
 
 Description
 -----------
@@ -37,7 +37,7 @@ Usage
 -----
 Run the script from the command line:
 
-    python3 group_nodes.py ir.json
+    python3 group_nodes_by_phase.py ir.json
 
 Where:
 
