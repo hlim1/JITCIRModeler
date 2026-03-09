@@ -40,11 +40,26 @@ struct DirectValOpt {
     bool is_update;     // set to true if is updating the exsiting offset. Otherwise, false.
 };
 
-struct ReplacedInfo {
-    ReplacedInfo(): nodeIdFrom(-1), nodeIdTo(-1) {}
+struct AddInfo {
+  AddInfo(): nodeId(-1), position(-1) {}
+
+  int nodeId;           // node id the edge is connected to.
+  int position;         // edge position.
+};
+
+struct RemoveInfo {
+  RemoveInfo(): nodeId(-1), position(-1) {}
+
+  int nodeId;           // node id the edge was connected to.
+  int position;         // edge position.
+};
+
+struct ReplaceInfo {
+    ReplaceInfo(): nodeIdFrom(-1), nodeIdTo(-1), position(-1) {}
 
     int nodeIdFrom;     // node id that exist in the edge to be repleced.
     int nodeIdTo;       // node id that is replacing the existing edge node.
+    int position;       // edge position.
 };
 
 struct Offset2Value {
@@ -77,9 +92,9 @@ struct Node {
     ADDRINT valuesInLocs[MAX_NODE_SIZE];   // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
-    std::map<int, int> instOrder2addNodeId;          // track the inst. order id to the id of added node.
-    std::map<int, int> instOrder2remNodeId;          // track the inst. order id to the id of removed node.
-    std::map<int, ReplacedInfo> instOrder2repInfo;   // track the inst. order id to the replaced info object.
+    std::map<int, AddInfo> instOrder2addInfo;        // 
+    std::map<int, RemoveInfo> instOrder2remInfo;    // track the inst. order id to the replaced info object.
+    std::map<int, ReplaceInfo> instOrder2repInfo;   // track the inst. order id to the replaced info object.
     std::map<int, DirectValOpt> instOrder2dirValOpt; // track the direct value change due to optimization.
     std::map<int, ADDRINT> id2Opcode;                // track the opcode update information during optimization.
     std::map<int, Offset2Value> instOrder2offVal;    // track the offset accessed by the memory read action.

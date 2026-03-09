@@ -1867,8 +1867,11 @@ void edgeRemoval(Node *node, int edge_idx, UINT32 fnId, UINT8* binary, ADDRINT i
     // this case by checking that the returned value from the earlier line is NOT NULL.
     if (target != NULL) {
         // Update node's 'remove' optimization information.
-        assert((node->instOrder2remNodeId).size()+1 < (node->instOrder2remNodeId).max_size());
-        node->instOrder2remNodeId[instruction.id] = target->id;
+        RemoveInfo removedInfo;
+        removedInfo.nodeId = target->id;
+        removedInfo.position = edge_idx;
+        node->instOrder2remInfo[instruction.id] = removedInfo;
+
         // Set the removed edge to NULL.
         assert(edge_idx < node->numberOfEdges);
         node->edgeNodes[edge_idx] = NULL;
@@ -1892,13 +1895,14 @@ void edgeReplace(Node *node, int value_id, int edge_idx, UINT32 fnId, UINT8* bin
 
     assert(value_id < IRGraph->lastNodeId);
     Node *to = IRGraph->nodes[value_id];
-    ReplacedInfo replacedInfo;
+    ReplaceInfo replacedInfo;
     // Update node's 'replace' optimization information.
     if (node->edgeNodes[edge_idx] != NULL) {
         assert(edge_idx < node->numberOfEdges);
         Node *from = node->edgeNodes[edge_idx];
         replacedInfo.nodeIdFrom = from->id;
         replacedInfo.nodeIdTo = to->id;
+        replacedInfo.position = edge_idx;
     }
     else {
         replacedInfo.nodeIdFrom = INT_INVALID;
@@ -1929,12 +1933,19 @@ void edgeAddition(Node *node, ADDRINT location, int value_id, UINT32 fnId, UINT8
     assert(value_id < IRGraph->lastNodeId);
     Node *adding = IRGraph->nodes[value_id];
     // Update node's 'add' optimization information.
-    assert((node->instOrder2addNodeId).size()+1 < (node->instOrder2addNodeId).max_size());
-    node->instOrder2addNodeId[instruction.id] = adding->id;
+    // assert((node->instOrder2addNodeId).size()+1 < (node->instOrder2addNodeId).max_size());
+    // node->instOrder2addNodeId[instruction.id] = adding->id;
     // Add an edge from 'this' node to the node with 'value_id'. 
     assert (node->numberOfEdges < MAX_NODES);
     node->edgeNodes[node->numberOfEdges] = adding;
     node->edgeAddrs[node->numberOfEdges] = location;
+
+    AddInfo addInfo;
+    addInfo.nodeId = adding->id;
+    addInfo.position = node->numberOfEdges;
+
+    node->instOrder2addInfo[instruction.id] = addInfo;
+
     node->numberOfEdges++;
     // Update function log information.
     updateLogInfo(node, addr, fnId, binary, instSize, ADDITION);
@@ -2530,8 +2541,6 @@ void write2Json() {
     ofstream jsonFile;
     jsonFile.open("ir.json");
 
-    int counter = 0;
-
     jsonFile << "{" << endl;
     jsonFile << "   \"nodes\": [" << endl;
     for (int i = 0; i < IRGraph->lastNodeId; i++) {
@@ -2589,53 +2598,63 @@ void write2Json() {
         }
         jsonFile << "           }," << endl;
         // Write opcode optimization information.
-        counter = 0;
         jsonFile << "           \"opcode_update\": {" << endl;
+        int cntr1 = 0;
         map<int,ADDRINT>::iterator itOpUpdate;
         for (itOpUpdate = node->id2Opcode.begin(); itOpUpdate != node->id2Opcode.end();) {
-            jsonFile << "               \"" << dec << itOpUpdate->first << "\":";
-            jsonFile << "\"" << hex << itOpUpdate->second << "\"";
-            if (++itOpUpdate != node->id2Opcode.end()) {
-                jsonFile << "," << endl;
+            if (cntr1 > 0) {
+                jsonFile << "               \"" << dec << itOpUpdate->first << "\":";
+                jsonFile << "\"" << hex << itOpUpdate->second << "\"";
+                if (++itOpUpdate != node->id2Opcode.end()) {
+                    jsonFile << "," << endl;
+                }
+                else {
+                    jsonFile << endl;
+                }
             }
-            else {
-                jsonFile << endl;
-            }
+            cntr1++;
         }
         jsonFile << "           }," << endl;
         // Write added optimization information.
         jsonFile << "           \"added\": {" << endl;
-        map<int,int>::iterator itAdd;
-        for (itAdd = node->instOrder2addNodeId.begin(); itAdd != node->instOrder2addNodeId.end();) {
-            jsonFile << "               \"" << dec << itAdd->first << "\":" << itAdd->second;
-            if (++itAdd != node->instOrder2addNodeId.end()) {
-                jsonFile << "," << endl;
+        map<int,AddInfo>::iterator itAdd;
+        for (itAdd = node->instOrder2addInfo.begin(); itAdd != node->instOrder2addInfo.end();) {
+            jsonFile << "               \"" << dec << itAdd->first << "\": {" << endl;
+            jsonFile << "                   \"nodeId\":" << (itAdd->second).nodeId << "," << endl;
+            jsonFile << "                   \"position\":" << (itAdd->second).position << endl;
+
+            if (++itAdd != node->instOrder2addInfo.end()) {
+                jsonFile << "                }," << endl;
             }
             else {
-                jsonFile << endl;
+                jsonFile << "                }" << endl;
             }
         }
         jsonFile << "           }," << endl;
         // Write removed optimization information.
         jsonFile << "           \"removed\": {" << endl;
-        map<int,int>::iterator itRem;
-        for (itRem = node->instOrder2remNodeId.begin(); itRem != node->instOrder2remNodeId.end();) {
-            jsonFile << "               \"" << dec << itRem->first << "\":" << itRem->second;
-            if (++itRem != node->instOrder2remNodeId.end()) {
-                jsonFile << "," << endl;
+        map<int,RemoveInfo>::iterator itRem;
+        for (itRem = node->instOrder2remInfo.begin(); itRem != node->instOrder2remInfo.end();) {
+            jsonFile << "               \"" << dec << itRem->first << "\": {" << endl;
+            jsonFile << "                   \"nodeId\":" << (itRem->second).nodeId << "," << endl;
+            jsonFile << "                   \"position\":" << (itRem->second).position << endl;
+
+            if (++itRem != node->instOrder2remInfo.end()) {
+                jsonFile << "                }," << endl;
             }
             else {
-                jsonFile << endl;
+                jsonFile << "                }" << endl;
             }
         }
         jsonFile << "           }," << endl;
         // Write replaced optimization information.
         jsonFile << "           \"replaced\": {" << endl;
-        map<int,ReplacedInfo>::iterator itRep;
+        map<int,ReplaceInfo>::iterator itRep;
         for (itRep = node->instOrder2repInfo.begin(); itRep != node->instOrder2repInfo.end();) {
             jsonFile << "               \"" << dec << itRep->first << "\": {" << endl;
             jsonFile << "                   \"from\":" << (itRep->second).nodeIdFrom << "," << endl;
-            jsonFile << "                   \"to\":" << (itRep->second).nodeIdTo << endl;
+            jsonFile << "                   \"to\":" << (itRep->second).nodeIdTo << "," << endl;
+            jsonFile << "                   \"position\":" << (itRep->second).position << endl;
 
             if (++itRep != node->instOrder2repInfo.end()) {
                 jsonFile << "                }," << endl;
@@ -2694,12 +2713,12 @@ void write2Json() {
             #endif
             jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
             jsonFile << "," << endl;
-            // DEBUG
-            // jsonFile << ", ";
             jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
             jsonFile << "                   \"PhaseFnId\":" << dec << (itinstInfo->second).phaseFnId << "," << endl;
+            #ifdef DEBUG_JSON
             string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
             jsonFile << "                   \"binary\":\"" << binString << "\"," << endl;
+            #endif
             jsonFile << "                   \"type\":" << dec << (itinstInfo->second).accessType << endl;
 
             if (++itinstInfo != node->instInfo.end()) {
@@ -2743,7 +2762,6 @@ void write2Json() {
     }
     jsonFile << "   }," << endl;
     // Print fnCallRetId-fnId information.
-    counter = 0;
     jsonFile << "   \"fnCallRetId2fnId\": {" << endl;
     map<int, UINT32>::iterator itfnCallRetId2fnId2;
     for (itfnCallRetId2fnId2 = fnCallRet.begin(); itfnCallRetId2fnId2 != fnCallRet.end();) {
@@ -2756,7 +2774,6 @@ void write2Json() {
         else {
             jsonFile << endl;
         }
-        counter++;
     }
     #ifdef DEBUG_JSON
     jsonFile << "   }," << endl;
