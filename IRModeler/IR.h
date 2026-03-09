@@ -92,11 +92,11 @@ struct Node {
     ADDRINT valuesInLocs[MAX_NODE_SIZE];   // tracks values written to memory locations.
     int numberOfLocs;                      // number of occupied locations.
     // Optimization Information.
-    std::map<int, AddInfo> instOrder2addInfo;        // 
-    std::map<int, RemoveInfo> instOrder2remInfo;    // track the inst. order id to the replaced info object.
-    std::map<int, ReplaceInfo> instOrder2repInfo;   // track the inst. order id to the replaced info object.
+    std::map<int, AddInfo> instOrder2addInfo;        // track the inst. order id to the edge add info object.
+    std::map<int, RemoveInfo> instOrder2remInfo;     // track the inst. order id to the edge remove info object.
+    std::map<int, ReplaceInfo> instOrder2repInfo;    // track the inst. order id to the edge replace info object.
     std::map<int, DirectValOpt> instOrder2dirValOpt; // track the direct value change due to optimization.
-    std::map<int, ADDRINT> id2Opcode;                // track the opcode update information during optimization.
+    std::map<int, ADDRINT> id2Opcode;                // track the opcode history.
     std::map<int, Offset2Value> instOrder2offVal;    // track the offset accessed by the memory read action.
     // Logging information.
     std::map<int, InstInfo> instInfo;      // track of the instructions accessed (mem. read/write) to this node.

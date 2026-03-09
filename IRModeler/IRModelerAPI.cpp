@@ -2051,7 +2051,8 @@ void opcodeUpdate(
     // If update opcode value exists and the value is not equal to the current node's opcode,
     // update the node's opcode and information tracking variables.
     if (opcode[0] != ADDRINT_INVALID && opcode[0] != node->opcode) {
-        // We don't update the main opcode.
+        // We update the main opcode.
+        node->opcode = opcode[0];
         // We track only the optimization (update) information.
         // Update opcode update information.
         assert((node->id2Opcode).size()+1 < (node->id2Opcode).max_size());
@@ -2597,22 +2598,18 @@ void write2Json() {
             }
         }
         jsonFile << "           }," << endl;
-        // Write opcode optimization information.
-        jsonFile << "           \"opcode_update\": {" << endl;
-        int cntr1 = 0;
+        // Write opcode history.
+        jsonFile << "           \"opcode_log\": {" << endl;
         map<int,ADDRINT>::iterator itOpUpdate;
         for (itOpUpdate = node->id2Opcode.begin(); itOpUpdate != node->id2Opcode.end();) {
-            if (cntr1 > 0) {
-                jsonFile << "               \"" << dec << itOpUpdate->first << "\":";
-                jsonFile << "\"" << hex << itOpUpdate->second << "\"";
-                if (++itOpUpdate != node->id2Opcode.end()) {
-                    jsonFile << "," << endl;
-                }
-                else {
-                    jsonFile << endl;
-                }
+            jsonFile << "               \"" << dec << itOpUpdate->first << "\":";
+            jsonFile << "\"" << hex << itOpUpdate->second << "\"";
+            if (++itOpUpdate != node->id2Opcode.end()) {
+                jsonFile << "," << endl;
             }
-            cntr1++;
+            else {
+                jsonFile << endl;
+            }
         }
         jsonFile << "           }," << endl;
         // Write added optimization information.
