@@ -193,6 +193,7 @@ node.
 Records values stored directly in the node's memory layout.
 
   key     Byte offset within the node
+  
   value   Value stored at that offset (hex string)
 
 ------------------------------------------------------------------------
@@ -208,6 +209,7 @@ Records values stored directly in the node's memory layout.
 Records opcode updates performed during execution.
 
   key     Instruction ID
+  
   value   Updated opcode
 
 ------------------------------------------------------------------------
@@ -228,6 +230,7 @@ Records opcode updates performed during execution.
 A new edge was added.
 
   `nodeId`     ID of the added node
+  
   `position`   Position (index) in the `edges` array
 
 ------------------------------------------------------------------------
@@ -246,6 +249,7 @@ A new edge was added.
 An existing edge was removed.
 
   `nodeId`     Remove ID of the node
+  
   `position`   Position (index) in the `edges` array
 
 ------------------------------------------------------------------------
@@ -265,7 +269,9 @@ An existing edge was removed.
 An edge was replaced.
 
   `from`       Original node ID
+  
   `to`         Replacement node ID
+  
   `position`   Position (index) in the `edges` array
 
 ------------------------------------------------------------------------
@@ -286,8 +292,11 @@ An edge was replaced.
 Records modifications to values stored inside nodes.
 
   `offset`      Offset from node base
+  
   `valFrom`     Previous value
+  
   `valTo`       New value
+  
   `is_update`   Indicates update vs insertion
 
 ------------------------------------------------------------------------
@@ -306,6 +315,7 @@ Records modifications to values stored inside nodes.
 Records values read from the node during execution.
 
     `offset`      Offset from node base
+    
     `value`      Value in the offset location
 
 ------------------------------------------------------------------------
@@ -326,10 +336,14 @@ Records values read from the node during execution.
 
 Logs instructions that accessed the node.
 
-  `fnCallRetId`   Unique identifier of a function call-return pair
+  `fnCallRetId`   Unique identifier of a function call-return
+  
   `fnId`          Function ID
+  
   `PhaseFnId`     JIT Compiler optimization phase function ID
+  
   `binary`        Instruction opcode and operands (DEBUG mode only)
+  
   `type`          Access type identifier
 
 #### Access Types
