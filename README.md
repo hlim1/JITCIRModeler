@@ -121,6 +121,7 @@ Example:
   "opcode": "34",
   "size": 24,
   "edges": [11, 17],
+  "initialEdges": [11, 17],
   "directValues": {},
   "opcode_log": {},
   "added": {},
@@ -147,7 +148,9 @@ Example:
 
   `size`                 Size of the node
 
-  `edges`                List of input node IDs
+  `edges`                List of node IDs that the current node has a direct edge connection (shows the final edge information).
+
+  `initialEdges`         List of node IDs that the current node had an initial direct edge connection (shows the initial edge information).
 
   `directValues`         Values stored directly inside the node
 
@@ -175,7 +178,7 @@ Example:
 
 The `edges` array contains **IDs of input nodes**.
 
-The **position of each element corresponds to the operand position**.
+The **position of each element corresponds to the edge position**.
 
 Duplicate node IDs may appear if multiple operands reference the same
 node.
