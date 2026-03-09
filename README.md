@@ -150,17 +150,17 @@ Example:
 
   `edges`                List of node IDs that the current node has a direct edge connection (shows the final edge information).
 
-  `initialEdges`         List of node IDs that the current node had an initial direct edge connection (shows the initial edge information).
+  `initialEdges`         List of node IDs that the current node had an initial direct edge connection (shows the original edge information).
 
   `directValues`         Values stored directly inside the node
 
   `opcode_log`           History of opcode updates
 
-  `added`                Nodes added as operands during optimization
+  `added`                Nodes added as edges during optimization
 
   `removed`              Nodes removed during optimization
 
-  `replaced`             Operand replacements during optimization
+  `replaced`             Edge replacements during optimization
 
   `directValueOpt`       Direct value modifications
 
@@ -180,7 +180,7 @@ The `edges` array contains **IDs of input nodes**.
 
 The **position of each element corresponds to the edge position**.
 
-Duplicate node IDs may appear if multiple operands reference the same
+Duplicate node IDs may appear if multiple edges reference the same
 node.
 
 ------------------------------------------------------------------------
