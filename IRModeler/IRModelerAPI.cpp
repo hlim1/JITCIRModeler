@@ -1383,7 +1383,7 @@ bool analyzeRecords(
         THREADID tid, const CONTEXT *ctx, UINT32 fnId,
         UINT32 opcode, bool is_create, UINT8* binary,
         ADDRINT instSize, UINT32 system_id, ADDRINT addr
-) {
+        ) {
 
     // Defensive check to prevent invalid TLS access.
     if (tid < 0 || tid >= maxThreads) {
@@ -1450,8 +1450,8 @@ bool analyzeRecords(
         if (srcRegSize > MAX_REGS) {
             PIN_MutexLock(&errorLock);
             std::cerr << "WARN: srcRegSize=" << srcRegSize
-                      << " > MAX_REGS=" << MAX_REGS
-                      << " (clamped)" << std::endl;
+                << " > MAX_REGS=" << MAX_REGS
+                << " (clamped)" << std::endl;
             PIN_MutexUnlock(&errorLock);
         }
 
@@ -1464,8 +1464,8 @@ bool analyzeRecords(
         if (desRegSize > MAX_REGS) {
             PIN_MutexLock(&errorLock);
             std::cerr << "WARN: desRegSize=" << desRegSize
-                      << " > MAX_REGS=" << MAX_REGS
-                      << " (clamped)" << std::endl;
+                << " > MAX_REGS=" << MAX_REGS
+                << " (clamped)" << std::endl;
             PIN_MutexUnlock(&errorLock);
         }
     }
@@ -1480,7 +1480,7 @@ bool analyzeRecords(
     if (data.memWriteSize != 0) {
         if (binary != NULL && instSize > 0 && instSize <= 32) {
             analyzeMemWrites(tid, fnId, is_former_range,
-                             binary, instSize, system_id, addr);
+                    binary, instSize, system_id, addr);
         }
         data.memWriteSize = 0;
     }
@@ -1498,7 +1498,7 @@ bool analyzeRecords(
         if (it == reads.end()) {
             PIN_MutexLock(&errorLock);
             std::cerr << "WARN: populate_regs but lastMemReadLoc not found: "
-                      << std::hex << lastMemReadLoc << std::dec << std::endl;
+                << std::hex << lastMemReadLoc << std::dec << std::endl;
             PIN_MutexUnlock(&errorLock);
             populate_regs = false;
 
@@ -1515,10 +1515,10 @@ bool analyzeRecords(
             if (srcRegSize > MAX_REGS) {
                 PIN_MutexLock(&errorLock);
                 std::cerr << "WARN: srcRegSize=" << srcRegSize
-                          << " > MAX_REGS=" << MAX_REGS
-                          << " (clamped for reads[" << std::hex
-                          << lastMemReadLoc << std::dec << "])"
-                          << std::endl;
+                    << " > MAX_REGS=" << MAX_REGS
+                    << " (clamped for reads[" << std::hex
+                    << lastMemReadLoc << std::dec << "])"
+                    << std::endl;
                 PIN_MutexUnlock(&errorLock);
             }
 
@@ -2520,278 +2520,321 @@ void setupFile(UINT16 infoSelect) {
 
 // ===========================================================
 
-/**
- * Function: write2Json
- * Description: This function writes modeled IR to a JSON file in formatted structure.
- * Input: None.
- * Output: None.
- **/
-void write2Json() {
-    ofstream jsonFile;
-    jsonFile.open("ir.json");
+static std::string escapeJson(const std::string& s) {
+    std::ostringstream out;
+    for (unsigned char c : s) {
+        switch (c) {
+            case '\"': out << "\\\""; break;
+            case '\\': out << "\\\\"; break;
+            case '\b': out << "\\b";  break;
+            case '\f': out << "\\f";  break;
+            case '\n': out << "\\n";  break;
+            case '\r': out << "\\r";  break;
+            case '\t': out << "\\t";  break;
+            default:
+                       if (c < 0x20) {
+                           out << "\\u"
+                               << std::hex << std::setw(4) << std::setfill('0')
+                               << static_cast<int>(c)
+                               << std::dec << std::setfill(' ');
+                       } else {
+                           out << static_cast<char>(c);
+                       }
+                       break;
+        }
+    }
+    return out.str();
+}
 
-    jsonFile << "{" << endl;
-    jsonFile << "   \"nodes\": [" << endl;
-    for (int i = 0; i < IRGraph->lastNodeId; i++) {
-        Node *node = IRGraph->nodes[i];
-        jsonFile << "       {" << endl;
-        jsonFile << "           \"id\": " << dec << node->id << "," << endl; 
-        jsonFile << "           \"alive\": ";
-        if (node->alive) {
-            jsonFile << "true," << endl;
+void write2Json() {
+    std::ofstream jsonFile("ir.json");
+    if (!jsonFile.is_open()) {
+        return;
+    }
+
+    jsonFile << "{\n";
+    jsonFile << "   \"nodes\": [\n";
+
+    for (int nodeIndex = 0; nodeIndex < IRGraph->lastNodeId; ++nodeIndex) {
+        Node* node = IRGraph->nodes[nodeIndex];
+        if (node == NULL) {
+            jsonFile << "       {\n";
+            jsonFile << "           \"id\": " << dec << INT_INVALID << ",\n";
+            jsonFile << "           \"alive\": false,\n";
+            jsonFile << "           \"opcode\": \"\",\n";
+            jsonFile << "           \"size\": 0,\n";
+            jsonFile << "           \"edges\": [],\n";
+            jsonFile << "           \"directValues\": {},\n";
+            jsonFile << "           \"opcode_log\": {},\n";
+            jsonFile << "           \"added\": {},\n";
+            jsonFile << "           \"removed\": {},\n";
+            jsonFile << "           \"replaced\": {},\n";
+            jsonFile << "           \"directValueOpt\": {},\n";
+            jsonFile << "           \"evaluates\": {},\n";
+            jsonFile << "           \"instAccess\": {}\n";
+            if (nodeIndex < IRGraph->lastNodeId - 1) {
+                jsonFile << "       },\n";
+            } else {
+                jsonFile << "       }\n";
+            }
+            continue;
         }
-        else {
-            jsonFile << "false," << endl;
-        }
-        #ifdef DEBUG_JSON
-        jsonFile << "           \"address\": \"" << hex << node->intAddress << "\"," << endl; 
-        #endif
-        jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\"," << endl; 
-        #ifdef SPM
-        jsonFile << "           \"is_nonIR\": ";
-        if (node->is_nonIR) {
-            jsonFile << "true," << endl;
-        }
-        else {
-            jsonFile << "false," << endl;
-        }
-        #endif
-        jsonFile << "           \"size\": " << dec << node->size << "," << endl; 
+
+        jsonFile << "       {\n";
+        jsonFile << "           \"id\": " << dec << node->id << ",\n";
+        jsonFile << "           \"alive\": " << (node->alive ? "true" : "false") << ",\n";
+
+#ifdef DEBUG_JSON
+        jsonFile << "           \"address\": \"" << hex << node->intAddress << "\",\n";
+#endif
+
+        jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\",\n";
+
+#ifdef SPM
+        jsonFile << "           \"is_nonIR\": " << (node->is_nonIR ? "true" : "false") << ",\n";
+#endif
+
+        jsonFile << "           \"size\": " << dec << node->size << ",\n";
+
         // Write edge information.
         jsonFile << "           \"edges\": [";
-        for (int i = 0; i < node->numberOfEdges; i++) {
-            if (node->edgeNodes[i] != NULL) {
-                jsonFile << dec << node->edgeNodes[i]->id;
-            }
-            else {
+        for (int edgeIndex = 0; edgeIndex < node->numberOfEdges; ++edgeIndex) {
+            if (node->edgeNodes[edgeIndex] != NULL) {
+                jsonFile << dec << node->edgeNodes[edgeIndex]->id;
+            } else {
                 jsonFile << dec << INT_INVALID;
             }
 
-            if (i < node->numberOfEdges-1) {
+            if (edgeIndex < node->numberOfEdges - 1) {
                 jsonFile << ",";
             }
         }
-        jsonFile << "]," << endl;
-        // Write occupied memory location and the value informations
-        jsonFile << "           \"directValues\": {" << endl;
-        for (int i = 0; i < node->numberOfLocs; i++) {
-            jsonFile << "               \"" << dec << node->offsets[i] << "\": ";
-            jsonFile << hex << "\"" << node->valuesInLocs[i] << "\"";
+        jsonFile << "],\n";
 
-            if (i < node->numberOfLocs-1) {
-                jsonFile << "," << endl;
-            }
-            else {
-                jsonFile << endl;
+        // Write occupied memory location and value information.
+        jsonFile << "           \"directValues\": {\n";
+        for (int locIndex = 0; locIndex < node->numberOfLocs; ++locIndex) {
+            jsonFile << "               \"" << dec << node->offsets[locIndex] << "\": ";
+            jsonFile << "\"" << hex << node->valuesInLocs[locIndex] << "\"";
+
+            if (locIndex < node->numberOfLocs - 1) {
+                jsonFile << ",\n";
+            } else {
+                jsonFile << "\n";
             }
         }
-        jsonFile << "           }," << endl;
+        jsonFile << "           },\n";
+
         // Write opcode history.
-        jsonFile << "           \"opcode_log\": {" << endl;
-        map<int,ADDRINT>::iterator itOpUpdate;
+        jsonFile << "           \"opcode_log\": {\n";
+        std::map<int, ADDRINT>::iterator itOpUpdate;
         for (itOpUpdate = node->id2Opcode.begin(); itOpUpdate != node->id2Opcode.end();) {
-            jsonFile << "               \"" << dec << itOpUpdate->first << "\":";
+            jsonFile << "               \"" << dec << itOpUpdate->first << "\": ";
             jsonFile << "\"" << hex << itOpUpdate->second << "\"";
+
             if (++itOpUpdate != node->id2Opcode.end()) {
-                jsonFile << "," << endl;
-            }
-            else {
-                jsonFile << endl;
+                jsonFile << ",\n";
+            } else {
+                jsonFile << "\n";
             }
         }
-        jsonFile << "           }," << endl;
+        jsonFile << "           },\n";
+
         // Write added optimization information.
-        jsonFile << "           \"added\": {" << endl;
-        map<int,AddInfo>::iterator itAdd;
+        jsonFile << "           \"added\": {\n";
+        std::map<int, AddInfo>::iterator itAdd;
         for (itAdd = node->instOrder2addInfo.begin(); itAdd != node->instOrder2addInfo.end();) {
-            jsonFile << "               \"" << dec << itAdd->first << "\": {" << endl;
-            jsonFile << "                   \"nodeId\":" << (itAdd->second).nodeId << "," << endl;
-            jsonFile << "                   \"position\":" << (itAdd->second).position << endl;
+            jsonFile << "               \"" << dec << itAdd->first << "\": {\n";
+            jsonFile << "                   \"nodeId\": " << dec << (itAdd->second).nodeId << ",\n";
+            jsonFile << "                   \"position\": " << dec << (itAdd->second).position << "\n";
 
             if (++itAdd != node->instOrder2addInfo.end()) {
-                jsonFile << "                }," << endl;
-            }
-            else {
-                jsonFile << "                }" << endl;
+                jsonFile << "               },\n";
+            } else {
+                jsonFile << "               }\n";
             }
         }
-        jsonFile << "           }," << endl;
+        jsonFile << "           },\n";
+
         // Write removed optimization information.
-        jsonFile << "           \"removed\": {" << endl;
-        map<int,RemoveInfo>::iterator itRem;
+        jsonFile << "           \"removed\": {\n";
+        std::map<int, RemoveInfo>::iterator itRem;
         for (itRem = node->instOrder2remInfo.begin(); itRem != node->instOrder2remInfo.end();) {
-            jsonFile << "               \"" << dec << itRem->first << "\": {" << endl;
-            jsonFile << "                   \"nodeId\":" << (itRem->second).nodeId << "," << endl;
-            jsonFile << "                   \"position\":" << (itRem->second).position << endl;
+            jsonFile << "               \"" << dec << itRem->first << "\": {\n";
+            jsonFile << "                   \"nodeId\": " << dec << (itRem->second).nodeId << ",\n";
+            jsonFile << "                   \"position\": " << dec << (itRem->second).position << "\n";
 
             if (++itRem != node->instOrder2remInfo.end()) {
-                jsonFile << "                }," << endl;
-            }
-            else {
-                jsonFile << "                }" << endl;
+                jsonFile << "               },\n";
+            } else {
+                jsonFile << "               }\n";
             }
         }
-        jsonFile << "           }," << endl;
+        jsonFile << "           },\n";
+
         // Write replaced optimization information.
-        jsonFile << "           \"replaced\": {" << endl;
-        map<int,ReplaceInfo>::iterator itRep;
+        jsonFile << "           \"replaced\": {\n";
+        std::map<int, ReplaceInfo>::iterator itRep;
         for (itRep = node->instOrder2repInfo.begin(); itRep != node->instOrder2repInfo.end();) {
-            jsonFile << "               \"" << dec << itRep->first << "\": {" << endl;
-            jsonFile << "                   \"from\":" << (itRep->second).nodeIdFrom << "," << endl;
-            jsonFile << "                   \"to\":" << (itRep->second).nodeIdTo << "," << endl;
-            jsonFile << "                   \"position\":" << (itRep->second).position << endl;
+            jsonFile << "               \"" << dec << itRep->first << "\": {\n";
+            jsonFile << "                   \"from\": " << dec << (itRep->second).nodeIdFrom << ",\n";
+            jsonFile << "                   \"to\": " << dec << (itRep->second).nodeIdTo << ",\n";
+            jsonFile << "                   \"position\": " << dec << (itRep->second).position << "\n";
 
             if (++itRep != node->instOrder2repInfo.end()) {
-                jsonFile << "                }," << endl;
-            }
-            else {
-                jsonFile << "                }" << endl;
+                jsonFile << "               },\n";
+            } else {
+                jsonFile << "               }\n";
             }
         }
-        jsonFile << "           }," << endl;
+        jsonFile << "           },\n";
+
         // Write direct value optimization information.
-        jsonFile << "           \"directValueOpt\": {" << endl;
-        map<int, DirectValOpt>::iterator itDir;
+        jsonFile << "           \"directValueOpt\": {\n";
+        std::map<int, DirectValOpt>::iterator itDir;
         for (itDir = node->instOrder2dirValOpt.begin(); itDir != node->instOrder2dirValOpt.end();) {
-            jsonFile << "               \"" << dec << itDir->first << "\": {" << endl;
-            jsonFile << "                   \"offset\":" << dec << (itDir->second).offset << "," << endl;
-            jsonFile << "                   \"valFrom\":\"" << hex << (itDir->second).valFrom << "\"," << endl;
-            jsonFile << "                   \"valTo\":\"" << hex << (itDir->second).valTo << "\"," << endl;
-            if ((itDir->second).is_update ) {
-                jsonFile << "                   \"is_update\": true" << endl;
-            }
-            else {
-                jsonFile << "                   \"is_update\": false" << endl;
-            }
+            jsonFile << "               \"" << dec << itDir->first << "\": {\n";
+            jsonFile << "                   \"offset\": " << dec << (itDir->second).offset << ",\n";
+            jsonFile << "                   \"valFrom\": \"" << hex << (itDir->second).valFrom << "\",\n";
+            jsonFile << "                   \"valTo\": \"" << hex << (itDir->second).valTo << "\",\n";
+            jsonFile << "                   \"is_update\": " << ((itDir->second).is_update ? "true" : "false") << "\n";
 
             if (++itDir != node->instOrder2dirValOpt.end()) {
-                jsonFile << "               }," << endl;
-            }
-            else {
-                jsonFile << "               }" << endl;
+                jsonFile << "               },\n";
+            } else {
+                jsonFile << "               }\n";
             }
         }
-        jsonFile << "           }," << endl;
+        jsonFile << "           },\n";
+
         // Node access (evaluate) information.
-        jsonFile << "           \"evaluates\": {" << endl;
-        map<int, Offset2Value>::iterator itOff;
+        jsonFile << "           \"evaluates\": {\n";
+        std::map<int, Offset2Value>::iterator itOff;
         for (itOff = node->instOrder2offVal.begin(); itOff != node->instOrder2offVal.end();) {
-            jsonFile << "               \"" << dec << itOff->first << "\": {" << endl;
-            jsonFile << "                   \"offset\":" << dec << (itOff->second).offset << "," << endl;
-            jsonFile << "                   \"value\":\"" << hex << (itOff->second).value << "\"" << endl;
+            jsonFile << "               \"" << dec << itOff->first << "\": {\n";
+            jsonFile << "                   \"offset\": " << dec << (itOff->second).offset << ",\n";
+            jsonFile << "                   \"value\": \"" << hex << (itOff->second).value << "\"\n";
 
             if (++itOff != node->instOrder2offVal.end()) {
-                jsonFile << "               }," << endl;
-            }
-            else {
-                jsonFile << "               }" << endl;
+                jsonFile << "               },\n";
+            } else {
+                jsonFile << "               }\n";
             }
         }
-        jsonFile << "           }," << endl;
-        // Instruction access log information.
-        jsonFile << "           \"instAccess\": {" << endl;
-        map<int, InstInfo>::iterator itinstInfo;
-        for (itinstInfo = node->instInfo.begin(); itinstInfo != node->instInfo.end();) {
-            jsonFile << "               \"" << dec << itinstInfo->first << "\": {" << endl;
-            #ifdef DEBUG_JSON
-            jsonFile << "                   \"address\":" << dec << (itinstInfo->second).address << "," << endl;
-            #endif
-            jsonFile << "                   \"fnCallRetId\":" << dec << (itinstInfo->second).fnCallRetId;
-            jsonFile << "," << endl;
-            jsonFile << "                   \"fnId\":" << dec << (itinstInfo->second).fnId << "," << endl;
-            jsonFile << "                   \"PhaseFnId\":" << dec << (itinstInfo->second).phaseFnId << "," << endl;
-            #ifdef DEBUG_JSON
-            string binString = uint8Tostring((itinstInfo->second).binary, (itinstInfo->second).instSize);
-            jsonFile << "                   \"binary\":\"" << binString << "\"," << endl;
-            #endif
-            jsonFile << "                   \"type\":" << dec << (itinstInfo->second).accessType << endl;
+        jsonFile << "           },\n";
 
-            if (++itinstInfo != node->instInfo.end()) {
-                jsonFile << "               }," << endl;
-            }
-            else {
-                jsonFile << "               }" << endl;
+        // Instruction access log information.
+        jsonFile << "           \"instAccess\": {\n";
+        std::map<int, InstInfo>::iterator itInstInfo;
+        for (itInstInfo = node->instInfo.begin(); itInstInfo != node->instInfo.end();) {
+            jsonFile << "               \"" << dec << itInstInfo->first << "\": {\n";
+
+#ifdef DEBUG_JSON
+            jsonFile << "                   \"address\": " << dec << (itInstInfo->second).address << ",\n";
+#endif
+
+            jsonFile << "                   \"fnCallRetId\": " << dec << (itInstInfo->second).fnCallRetId << ",\n";
+            jsonFile << "                   \"fnId\": " << dec << (itInstInfo->second).fnId << ",\n";
+            jsonFile << "                   \"PhaseFnId\": " << dec << (itInstInfo->second).phaseFnId << ",\n";
+
+#ifdef DEBUG_JSON
+            std::string binString = uint8Tostring((itInstInfo->second).binary, (itInstInfo->second).instSize);
+            jsonFile << "                   \"binary\": \"" << escapeJson(binString) << "\",\n";
+#endif
+
+            jsonFile << "                   \"type\": " << dec << (itInstInfo->second).accessType << "\n";
+
+            if (++itInstInfo != node->instInfo.end()) {
+                jsonFile << "               },\n";
+            } else {
+                jsonFile << "               }\n";
             }
         }
-        jsonFile << "           }" << endl;
-        // Closing
-        if (i < IRGraph->lastNodeId-1) {
-            jsonFile << "       }," << endl;
-        }
-        else {
-            jsonFile << "       }" << endl;
+        jsonFile << "           }\n";
+
+        if (nodeIndex < IRGraph->lastNodeId - 1) {
+            jsonFile << "       },\n";
+        } else {
+            jsonFile << "       }\n";
         }
     }
-    jsonFile << "   ]," << endl;
+
+    jsonFile << "   ],\n";
+
     // Print function information.
-    map<UINT32, string> fnId2fnStr;
-    map<int, UINT32>::iterator itfnCallRetId2fnId1;
-    itfnCallRetId2fnId1 = fnCallRet.begin();
+    std::map<UINT32, std::string> fnId2fnStr;
+    std::map<int, UINT32>::iterator itfnCallRetId2fnId1 = fnCallRet.begin();
     while (itfnCallRetId2fnId1 != fnCallRet.end()) {
-        string fn = strTable.get(itfnCallRetId2fnId1->second);
+        std::string fn = strTable.get(itfnCallRetId2fnId1->second);
         fnId2fnStr[itfnCallRetId2fnId1->second] = fn;
         ++itfnCallRetId2fnId1;
     }
-    jsonFile << "   \"fnId2Name\": {" << endl;
-    map<UINT32, string>::iterator itfnId2fnStr;
+
+    jsonFile << "   \"fnId2Name\": {\n";
+    std::map<UINT32, std::string>::iterator itfnId2fnStr;
     for (itfnId2fnStr = fnId2fnStr.begin(); itfnId2fnStr != fnId2fnStr.end();) {
-        jsonFile << "       \"" << dec << itfnId2fnStr->first << "\":";
-        jsonFile << "\"" << itfnId2fnStr->second << "\"";
+        jsonFile << "       \"" << dec << itfnId2fnStr->first << "\": ";
+        jsonFile << "\"" << escapeJson(itfnId2fnStr->second) << "\"";
 
         if (++itfnId2fnStr != fnId2fnStr.end()) {
-            jsonFile << "," << endl;
-        }
-        else {
-            jsonFile << endl;
+            jsonFile << ",\n";
+        } else {
+            jsonFile << "\n";
         }
     }
-    jsonFile << "   }," << endl;
+    jsonFile << "   },\n";
+
     // Print fnCallRetId-fnId information.
-    jsonFile << "   \"fnCallRetId2fnId\": {" << endl;
-    map<int, UINT32>::iterator itfnCallRetId2fnId2;
+    jsonFile << "   \"fnCallRetId2fnId\": {\n";
+    std::map<int, UINT32>::iterator itfnCallRetId2fnId2;
     for (itfnCallRetId2fnId2 = fnCallRet.begin(); itfnCallRetId2fnId2 != fnCallRet.end();) {
-        jsonFile << "       \"" << dec << itfnCallRetId2fnId2->first << "\":";
-        jsonFile << itfnCallRetId2fnId2->second;
+        jsonFile << "       \"" << dec << itfnCallRetId2fnId2->first << "\": ";
+        jsonFile << dec << itfnCallRetId2fnId2->second;
 
         if (++itfnCallRetId2fnId2 != fnCallRet.end()) {
-            jsonFile << "," << endl;
-        }
-        else {
-            jsonFile << endl;
+            jsonFile << ",\n";
+        } else {
+            jsonFile << "\n";
         }
     }
-    #ifdef DEBUG_JSON
-    jsonFile << "   }," << endl;
+
+#ifdef DEBUG_JSON
+    jsonFile << "   },\n";
+
     // Print all memory writes happened during the JIT compilation.
-    jsonFile << "   \"memory_writes\": {" << endl;
-    map<ADDRINT, MWInst>::iterator itWrites;
+    jsonFile << "   \"memory_writes\": {\n";
+    std::map<ADDRINT, MWInst>::iterator itWrites;
     for (itWrites = writes.begin(); itWrites != writes.end();) {
-        jsonFile << "       \"" << hex << itWrites->first << "\":";
+        jsonFile << "       \"" << hex << itWrites->first << "\": ";
         jsonFile << "\"" << hex << (itWrites->second).value << "\"";
+
         if (++itWrites != writes.end()) {
-            jsonFile << "," << endl;
-        }
-        else {
-            jsonFile << endl;
+            jsonFile << ",\n";
+        } else {
+            jsonFile << "\n";
         }
     }
-    jsonFile << "   }," << endl;
+    jsonFile << "   },\n";
+
     // Print all memory reads happened during the JIT compilation.
-    jsonFile << "   \"memory_reads\": {" << endl;
-    map<ADDRINT, MRInst>::iterator itReads;
+    jsonFile << "   \"memory_reads\": {\n";
+    std::map<ADDRINT, MRInst>::iterator itReads;
     for (itReads = reads.begin(); itReads != reads.end();) {
-        jsonFile << "       \"" << hex << itReads->first << "\":";
+        jsonFile << "       \"" << hex << itReads->first << "\": ";
         jsonFile << "\"" << hex << (itReads->second).value << "\"";
+
         if (++itReads != reads.end()) {
-            jsonFile << "," << endl;
-        }
-        else {
-            jsonFile << endl;
+            jsonFile << ",\n";
+        } else {
+            jsonFile << "\n";
         }
     }
-    #endif
-    jsonFile << "   }" << endl;
-    jsonFile << "}" << endl;
+    jsonFile << "   }\n";
+#else
+    jsonFile << "   }\n";
+#endif
+
+    jsonFile << "}\n";
 }
 
 /**
