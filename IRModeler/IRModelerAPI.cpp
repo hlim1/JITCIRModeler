@@ -527,8 +527,8 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                     write.location != node->intAddress &&   // write value is not node address
                     write.location != node->opcodeAddress   // write value is not node opcode address
                     ) {
-                bool is_direct = isMemoryWriteLoc(write.value);
-                if (is_direct) {
+
+                if (write.location >= blockHead && write.location < blockTail) {
                     // Compute the distance between the block head and the written location,
                     // then write to node's offsets to track which locations are wrriten.
                     ADDRINT offset = write.location - blockHead;
@@ -1770,11 +1770,7 @@ void trackOptimization(
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
             else if (!is_node_addr) {
-                bool is_direct = isMemoryWriteLoc(value);
-                // TODO: 'valueSize < 8' is to prevent considering the memory address is considered as
-                // a value with an assmption is that the address's size is 8. This is not a good approach
-                // so we need to update it with more appropriate way.
-                if (is_direct && valueSize < 8) {
+                if (location >= node->blockHead && location < node->blockTail) {
                     directValueWrite(node, location, value, fnId, binary, instSize, addr); 
                 }
                 else {
