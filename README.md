@@ -119,6 +119,7 @@ Example:
   "alive": true,
   "address": "7f31ac40",
   "opcode": "34",
+  "mnemonic": "LoopExitValue"
   "is_nonIR": false,
   "size": 24,
   "edges": [11, 17],
