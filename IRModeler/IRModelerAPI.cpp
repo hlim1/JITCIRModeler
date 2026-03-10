@@ -2595,6 +2595,7 @@ void write2Json() {
 #endif
 
         jsonFile << "           \"opcode\": \"" << hex << node->opcode << "\",\n";
+        jsonFile << "           \"mnemonic\": \"\",\n";
 
 #ifdef SPM
         jsonFile << "           \"is_nonIR\": " << (node->is_nonIR ? "true" : "false") << ",\n";
