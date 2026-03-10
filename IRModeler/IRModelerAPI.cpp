@@ -2753,7 +2753,7 @@ void write2Json() {
 
             jsonFile << "                   \"fnCallRetId\": " << dec << (itInstInfo->second).fnCallRetId << ",\n";
             jsonFile << "                   \"fnId\": " << dec << (itInstInfo->second).fnId << ",\n";
-            jsonFile << "                   \"PhaseFnId\": " << dec << (itInstInfo->second).phaseFnId << ",\n";
+            jsonFile << "                   \"phaseFnId\": " << dec << (itInstInfo->second).phaseFnId << ",\n";
 
 #ifdef DEBUG_JSON
             std::string binString = uint8Tostring((itInstInfo->second).binary, (itInstInfo->second).instSize);

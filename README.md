@@ -332,7 +332,7 @@ Records values read from the node during execution.
   "11201": {
     "fnCallRetId": 53,
     "fnId": 12,
-    "PhaseFnId": 104,
+    "phaseFnId": 104,
     "binary": "48 89 d8",
     "type": 1
   }
