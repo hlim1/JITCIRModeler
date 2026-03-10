@@ -23,6 +23,32 @@ def load_json(path):
         return json.load(f)
 
 def get_name(opcode: str, op2name: dict):
+    """
+    Retrieve the mnemonic name corresponding to an opcode.
+
+    This function looks up the given opcode in an opcode-to-name mapping
+    table and returns the associated mnemonic name.
+
+    Parameters
+    ----------
+    opcode : str
+        Opcode value represented as a string. This value is typically read
+        from the IR JSON node field `opcode`.
+
+    op2name : dict
+        Dictionary mapping opcode values to their corresponding mnemonic
+        names.
+
+    Returns
+    -------
+    str
+        Mnemonic name corresponding to the given opcode.
+
+    Raises
+    ------
+    AssertionError
+        If the opcode does not exist in the opcode lookup table.
+    """
     assert opcode in op2name, f"ERROR: Opcode {opcode} is not in the opcode table."
 
     return op2name[opcode]
