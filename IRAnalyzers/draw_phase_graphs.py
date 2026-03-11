@@ -113,7 +113,7 @@ def sanitize_filename(name):
 
 def get_creation_phase_fnid(node):
     """
-    Return the PhaseFnId of the CREATE event for a node.
+    Return the phaseFnId of the CREATE event for a node.
 
     Parameters
     ----------
@@ -123,13 +123,13 @@ def get_creation_phase_fnid(node):
     Returns
     -------
     int
-        PhaseFnId of the node creation event.
+        phaseFnId of the node creation event.
 
     Raises
     ------
     AssertionError
         If the node has no instAccess entries, no CREATE event,
-        or the CREATE event has no PhaseFnId.
+        or the CREATE event has no phaseFnId.
     """
     inst_access = node.get("instAccess", {})
     node_id = node.get("id")
@@ -146,7 +146,7 @@ def get_creation_phase_fnid(node):
 
     assert create_event is not None, f"Node {node_id} has no CREATE (type 7) event."
 
-    phase_fnid = create_event.get("PhaseFnId")
+    phase_fnid = create_event.get("phaseFnId")
     assert phase_fnid is not None, f"Node {node_id} CREATE event missing PhaseFnId."
 
     return phase_fnid
@@ -227,7 +227,7 @@ def add_node_to_graph(dot, node_id, node_lookup, phase_node_ids):
     else:
         name = node.get("mnemonic", "")
         label = f"{node_id}"
-        if opcode != "":
+        if name != "":
             label += f"\\nop={name}"
         shape = "box" if node_id in phase_node_ids else "ellipse"
 
