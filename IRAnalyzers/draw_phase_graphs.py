@@ -267,7 +267,7 @@ def draw_phase_graph(phase_fnid, phase_name, phase_nodes, node_lookup, output_di
 
     dot = Digraph(name=base_filename, format="png")
     dot.attr(rankdir="LR")
-    dot.attr(label=f"{phase_name}\\nPhaseFnId={phase_fnid}", labelloc="t", fontsize="20")
+    dot.attr(label=f"{phase_name}\\n(PhaseFnId={phase_fnid})", labelloc="t", fontsize="20")
 
     phase_node_ids = {node["id"] for node in phase_nodes if "id" in node}
     drawn_nodes = set()
@@ -327,7 +327,11 @@ def main():
     sorted_phase_ids = sorted(phase_to_nodes.keys(), key=int)
 
     for index, phase_fnid in enumerate(sorted_phase_ids):
-        phase_name = fnid_to_name.get(str(phase_fnid), f"unknown_phase_{phase_fnid}")
+        phase_name = fnid_to_name.get(str(phase_fnid), f"unknown_phase")
+        
+        if phase_name != "unknown_phase":
+            phase_name = phase_name.split("::")[3]
+
         phase_nodes = phase_to_nodes[phase_fnid]
 
         output_png = draw_phase_graph(
