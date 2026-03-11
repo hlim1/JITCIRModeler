@@ -2,7 +2,7 @@
 """
 draw_phase_graphs.py
 
-Author: Your Name
+Author: Terrence Lim (with the help of LLM).
 Created: 2026-03-09
 
 Description
@@ -62,7 +62,6 @@ Notes
 - If an edge points to a node outside the current phase group, that target
   node is still drawn so the connection remains visible.
 
-Author: Terrence Lim (with the help of LLM).
 """
 
 import json
@@ -226,10 +225,10 @@ def add_node_to_graph(dot, node_id, node_lookup, phase_node_ids):
         label = f"{node_id}\\n<missing>"
         shape = "ellipse"
     else:
-        opcode = node.get("opcode", "")
+        name = node.get("mnemonic", "")
         label = f"{node_id}"
         if opcode != "":
-            label += f"\\nop={opcode}"
+            label += f"\\nop={name}"
         shape = "box" if node_id in phase_node_ids else "ellipse"
 
     dot.node(str(node_id), label=label, shape=shape)

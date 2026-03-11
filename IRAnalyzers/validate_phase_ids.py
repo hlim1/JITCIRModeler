@@ -2,7 +2,7 @@
 """
 validate_phase_ids.py
 
-Author: Your Name
+Author: Terrence Lim (with the help of LLM).
 Created: 2026-03-09
 
 Description
@@ -23,7 +23,6 @@ Usage
 -----
 python3 validate_phase_ids.py ir.json
 
-Author: Terrence Lim (with the help of LLM).
 """
 
 import json
