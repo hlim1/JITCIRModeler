@@ -86,6 +86,7 @@ struct Node {
     ADDRINT edgeAddrs[MAX_NODES];          // list of edge addresses.
     int     initialEdges[MAX_NODES];       // list of intial edges.
     int     numberOfEdges;                 // number of edges.
+    int     numberOfInitEdges;             // number of initial edges.
     ADDRINT blockHead;                     // address of the node block head.
     ADDRINT blockTail;                     // address of the node block tail.
     // Metadata information.

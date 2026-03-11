@@ -229,9 +229,9 @@ def add_node_to_graph(dot, node_id, node_lookup, phase_node_ids):
         name = node.get("mnemonic", "")
         label = f"{node_id}"
         if opcode != "":
-            label += f"\\nop={opcode}"
+            label += f"\\nop=0x{opcode}"
         if name != "":
-            label += f"\\nname={name}"
+            label += f"\\n({name})"
         shape = "box" if node_id in phase_node_ids else "ellipse"
 
     dot.node(str(node_id), label=label, shape=shape)

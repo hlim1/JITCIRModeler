@@ -245,6 +245,7 @@ void constructModeledIRNode(
     for (int i = 0; i < node->numberOfEdges; i++) {
         node->initialEdges[i] = node->edgeNodes[i]->id;
     }
+    node->numberOfInitEdges = node->numberOfEdges;
 
     // Add node to IRGraph.
     assert(IRGraph->lastNodeId < MAX_NODES);
@@ -2620,10 +2621,10 @@ void write2Json() {
 
         // Write edge information.
         jsonFile << "           \"initialEdges\": [";
-        for (int edgeIndex = 0; edgeIndex < node->numberOfEdges; ++edgeIndex) {
+        for (int edgeIndex = 0; edgeIndex < node->numberOfInitEdges; ++edgeIndex) {
             jsonFile << dec << node->initialEdges[edgeIndex];
 
-            if (edgeIndex < node->numberOfEdges - 1) {
+            if (edgeIndex < node->numberOfInitEdges - 1) {
                 jsonFile << ",";
             }
         }
