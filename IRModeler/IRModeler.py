@@ -145,6 +145,11 @@ def addMnemonic():
         name = opcode2name[opcode]
         node["mnemonic"] = name
 
+        if node["directValues"]:
+            node["directValues"] = dict(
+                sorted(node["directValues"].items(), key=lambda x: int(x[0]))
+            )
+
     dump_json(ir, "ir.json")
 
 def load_json(path: str):
