@@ -1779,6 +1779,8 @@ void trackOptimization(
             // Node's are being destroyed and the location is being wiped by writing '0'.
             // We check such pattern in the instruction and mark the node dead.
             if (is_node_addr && value == WIPEMEM) {
+                // DEBUG
+                cout << "node being destroyed: " << dec << node->id << ", value: " << hex << value << endl;
                 nodeDestroy(node, fnId, binary, instSize, addr);
             }
             // If the write is happening at node address locaiton, then check whether it's an opcode
