@@ -10,9 +10,10 @@
 
 extern PIN_LOCK fnCallRetLock;
 
+const int     INT_INVALID     = -1;
 const UINT32  UINT32_INVALID  = -1;
 const ADDRINT ADDRINT_INVALID = -1;
-const int     INT_INVALID     = -1;
+const ADDRINT POINTER_LIKE_VALUE = ADDRINT_INVALID;
 
 const UINT32 V8 = 1;
 const UINT32 JSC = 2;
@@ -216,6 +217,8 @@ int     getEdgeEdx(Node *node, ADDRINT address);
 bool    isMemoryWriteLoc(ADDRINT value);
 void    updateLogInfo(Node *node, ADDRINT addr, UINT32 fnId, UINT8* binary, ADDRINT instSize, Access accessType);
 bool    isSameAccess(Node *node, InstInfo instInfo);
+bool    isPointerLike(ADDRINT v);
+bool    isNodeAddress(ADDRINT value);
 
 // Prints for debugging.
 void printUINT8(UINT8 *currentRaxVal, UINT32 currentRaxValSize);

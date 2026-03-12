@@ -238,7 +238,11 @@ void constructModeledIRNode(
     node->blockTail = node->blockHead + node->size;
     assert (node->blockTail != ADDRINT_INVALID);
 
-    // Get initial (in)direct value assigned to the node block.
+    // Get initial direct value assigned to the node block.
+    // TODO: we can trace pointer-like value assignments, but these values
+    // change per execution, and it't no clear what these addresses mean.
+    // Study the way to make them meaningful. Meanwhile, we ignore them
+    // and only captures direct value assignments.
     get_init_block_locs(node, system_id);
 
     // Populate initialEdges.
@@ -529,22 +533,21 @@ void get_init_block_locs(Node *node, UINT32 system_id) {
                 node->numberOfEdges++;
             }
             else if (
-                    edgeNodeId == INT_INVALID &&            // write value is non-edge node address
-                    write.location != node->intAddress &&   // write value is not node address
-                    write.location != node->opcodeAddress   // write value is not node opcode address
+                    edgeNodeId == INT_INVALID &&               // write value is non-edge node address
+                    write.location != node->intAddress &&      // write value is not node address
+                    write.location != node->opcodeAddress &&   // write value is not node opcode address
+                    !isPointerLike(write.value)
                     ) {
-                if (write.location >= blockHead && write.location < blockTail) {
-                    // Compute the distance between the block head and the written location,
-                    // then write to node's offsets to track which locations are wrriten.
-                    ADDRINT offset = write.location - blockHead;
-                    assert (node->numberOfLocs < MAX_NODE_SIZE);
-                    node->offsets[node->numberOfLocs] = offset;
-                    node->valuesInLocs[node->numberOfLocs] = write.value;
-                    node->numberOfLocs++;
-                }
-                else {
-                    // TODO: Need to handle indirect (pointing to non-ir object) assignment.
-                }
+                // then write to node's offsets to track which locations are wrriten.
+                ADDRINT offset = write.location - blockHead;
+                assert (node->numberOfLocs < MAX_NODE_SIZE);
+
+                node->offsets[node->numberOfLocs] = offset;
+                node->valuesInLocs[node->numberOfLocs] = write.value;
+                node->numberOfLocs++;
+            }
+            else {
+                // TODO: Need to handle indirect (pointing to non-ir object) assignment.
             }
         }
     }
@@ -762,6 +765,17 @@ int compareValuetoIRNodes(ADDRINT value) {
     }
 
     return node_id;
+}
+
+bool isNodeAddress(ADDRINT value) {
+
+    for (int i = 0; i < IRGraph->lastNodeId; i++) {
+        if (value == IRGraph->nodeAddrs[i]) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -1775,7 +1789,7 @@ void trackOptimization(
             // If the write is happening at non-node address location, then check for
             // the value assignment (direct & indirect).
             else if (!is_node_addr) {
-                if (location >= node->blockHead && location < node->blockTail) {
+                if (location >= node->blockHead && location < node->blockTail && !isPointerLike(value)) {
                     directValueWrite(node, location, value, fnId, binary, instSize, addr); 
                 }
                 else {
@@ -1846,6 +1860,27 @@ bool isSameAccess(Node *node, InstInfo instInfo) {
     }
 
     return is_same;
+}
+
+/**
+ * Function: isPointerLike
+ * Description: Determines whether a given value likely represents a pointer.
+ *  The function applies several checks, including whether the value matches
+ *  a known node address, corresponds to a recorded memory write location,
+ *  or falls within a typical address range. This helps distinguish pointer-
+ *  like values from ordinary scalar data during analysis.
+ *
+ * Input:
+ *  - v (ADDRINT): The value to examine.
+ *
+ * Output:
+ *  - bool: Returns true if the value is likely a pointer, otherwise false.
+ */
+bool isPointerLike(ADDRINT v) {
+    if (v == 0) return false;
+    if (isNodeAddress(v)) return true;
+    if (isMemoryWriteLoc(v)) return true;
+    return false;
 }
 
 /**
@@ -1997,23 +2032,40 @@ void directValueWrite(Node *node, ADDRINT location, ADDRINT value, UINT32 fnId, 
             assert (i < MAX_NODE_SIZE);
             // Update the directValOpt's valFrom, valTo, and is_update.
             directValOpt.valFrom = node->valuesInLocs[i];
-            directValOpt.valTo = value;
-            directValOpt.is_update = true;
+
+            ADDRINT val;
+            if (isPointerLike(value)) {
+                val = POINTER_LIKE_VALUE;
+            }
+            else {
+                val = value;
+            }
+
+            directValOpt.valTo = val;
+
             // Update the value.
-            node->valuesInLocs[i] = value;
+            node->valuesInLocs[i] = val;
+            directValOpt.is_update = true;
             is_written = true;
             break;
         }
     }
+
     // If is_written is false and location is not a location for opcode,
     // then is a new value write. Thus, add the offset and value.
     if (!is_written && location != node->opcodeAddress) {
-        // Update the directValOpt's valTo.
-        directValOpt.valTo = value;
         // Update offsets and valuesInLocs.
         assert(node->numberOfLocs < MAX_NODE_SIZE);
         node->offsets[node->numberOfLocs] = offset;
-        node->valuesInLocs[node->numberOfLocs] = value;
+        ADDRINT val;
+        if (isPointerLike(value)) {
+            val = POINTER_LIKE_VALUE;
+        }
+        else {
+            val = value;
+        }
+        directValOpt.valTo = val;
+        node->valuesInLocs[node->numberOfLocs] = val;
         node->numberOfLocs++;
         is_written = true;
     }
