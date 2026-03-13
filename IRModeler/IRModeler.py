@@ -1,14 +1,6 @@
 import os
 import sys
-import time
 import json
-import subprocess
-
-# Get PIN_ROOT from environment
-pin_root = os.environ.get("PIN_ROOT")
-
-# Build the path to the pin binary
-pin_path = os.path.join(pin_root, "pin")
 
 # Build the path to the IRModeler.so file
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,70 +9,6 @@ irmodeler_so_path = os.path.join(script_dir, "obj-intel64/IRModeler.so")
 # Set opcode table path
 opcode_table = "v8_8.3.110.13.json" # Update this to correct opcode table file.
 opcode_table_path = os.path.join(script_dir, "opcodeTables", opcode_table)
-
-def confirm_paths():
-    """
-    Verify that all required paths exist before execution.
-
-    This function checks that critical files and directories required by the
-    workflow are available on the filesystem. These include:
-
-        - PIN installation root directory
-        - PIN executable path
-        - IRModeler shared library (.so)
-        - Opcode table JSON file
-
-    If any path is missing, the function terminates execution with an
-    assertion error.
-
-    Raises
-    ------
-    AssertionError
-        If any required file or directory does not exist.
-    """
-    assert os.path.exists(pin_root), f"ERROR: {pin_root} not available."
-    assert os.path.exists(pin_path), f"ERROR: {pin_path} not available."
-    assert os.path.exists(irmodeler_so_path), f"ERROR: {irmodeler_so_path} not available."
-    assert os.path.exists(opcode_table_path), f"ERROR: {opcode_table_path} not available."
-
-def run(cmd: str):
-    """
-    Execute a shell command and report its execution results.
-
-    This function runs a command using the subprocess module, captures its
-    standard output and standard error streams, and prints them to the console.
-    It also measures and reports the execution time.
-
-    Parameters
-    ----------
-    cmd : str
-        Command string to execute.
-
-    Behavior
-    --------
-    - Executes the command using subprocess.run()
-    - Captures stdout and stderr
-    - Prints execution output
-    - Prints elapsed execution time
-
-    Returns
-    -------
-    None
-    """
-    start = time.time()
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    end = time.time()
-
-    # Execution result.
-    print("STDOUT:")
-    print(result.stdout)
-    print("STDERR:")
-    print(result.stderr)
-
-    elapsed = end - start
-    minutes = int(elapsed // 60)
-    seconds = elapsed % 60
-    print("Elapsed time: {} min {:.0f} sec".format(minutes, seconds))
 
 def clean(files=["data.out", "errors.out"]):
     """
@@ -137,6 +65,7 @@ def addMnemonic():
     None
     """
     ir = load_json("ir.json")
+    assert os.path.exists("ir.json"), f"ERROR: ir.json not available."
     opcode2name = load_json(opcode_table_path)
 
     for node in ir["nodes"]:
@@ -144,7 +73,8 @@ def addMnemonic():
         assert opcode in opcode2name, f"ERROR: {opcode} not in opcode table."
         name = opcode2name[opcode]
         node["mnemonic"] = name
-
+        
+        # In addition to adding mnemonic, we sort the directValues by keys (increasing).
         if node["directValues"]:
             node["directValues"] = dict(
                 sorted(node["directValues"].items(), key=lambda x: int(x[0]))
@@ -203,16 +133,9 @@ def dump_json(data: list, path: str, space=4):
         json.dump(data, f, indent=space)
 
 def main():
-    confirm_paths()
 
-    args = sys.argv[1:]
-
-    cmd = [pin_path, "-t", irmodeler_so_path, "--"]
-    cmd.extend(args)
-
-    run(cmd)
-    clean()
     addMnemonic()
+    clean()
 
 if __name__ == "__main__":
     main()
