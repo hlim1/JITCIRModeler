@@ -1779,8 +1779,6 @@ void trackOptimization(
             // Node's are being destroyed and the location is being wiped by writing '0'.
             // We check such pattern in the instruction and mark the node dead.
             if (is_node_addr && value == WIPEMEM) {
-                // DEBUG
-                cout << "node being destroyed: " << dec << node->id << ", value: " << hex << value << endl;
                 nodeDestroy(node, fnId, binary, instSize, addr);
             }
             // If the write is happening at node address locaiton, then check whether it's an opcode
@@ -2150,17 +2148,16 @@ void nodeEvaluation(ADDRINT readAddr, ADDRINT valueInt, UINT32 fnId, UINT8* bina
             Offset2Value offset2value;
             offset2value.offset = offset;
 
-            // THIS MAY HURT THE PERFORMACE SIGNIFICANTLY. REMOVE IF IT DOES.
-            map<ADDRINT,MWInst>::iterator it;
-            it = writes.find(valueInt);
-            if (it != writes.end()) {
-                offset2value.value = writes[valueInt].value;
+            if (!isPointerLike(valueInt)) {
+                offset2value.value = valueInt;
+                (IRGraph->nodes[i])->instOrder2offVal[instruction.id] = offset2value;
             }
             else {
-                offset2value.value = valueInt;
+                // TODO: This is an access to a location where reference address is stored.
+                // Currently, we ignore them and only handle direct accesses. Handle indirect later.
+                is_node_block = false;
             }
 
-            (IRGraph->nodes[i])->instOrder2offVal[instruction.id] = offset2value;
             break;
         }
     }
