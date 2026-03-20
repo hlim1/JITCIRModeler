@@ -47,7 +47,7 @@ UINT32 predTID = 0;
 UINT32 numSkipped = 0;
 const UINT32 LARGEST_REG_SIZE = 1024;
 const UINT32 BUF_SIZE = 16384;
-const UINT32 MAX_MEM_OP_SIZE = 1024;
+const UINT32 MAX_MEM_OP_SIZE = 4096;
 const UINT32 UINT8_SIZE = sizeof(UINT8);
 const UINT32 UINT16_SIZE = sizeof(UINT16);
 const UINT32 UINT32_SIZE = sizeof(UINT32);
@@ -1267,14 +1267,33 @@ void PIN_FAST_ANALYSIS_CALL recordDestRegs(THREADID tid, const RegVector *destRe
  *  - fnId (UINT32): ID of a function that currently analyzing instruction belongs to.
  * Output: None
  **/
-void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary, ADDRINT instSize, ADDRINT addr) {
+void checkMemRead(ADDRINT readAddr,
+                  UINT32 readSize,
+                  UINT32 fnId,
+                  UINT8* binary,
+                  ADDRINT instSize,
+                  ADDRINT addr) {
+    // Keep behavior predictable for weird edge cases.
+    if (readSize == 0) {
+        return;
+    }
 
-    string fn = strTable.get(fnId);
+    // Allocate exactly enough space for this read.
+    std::vector<UINT8> value(readSize, 0);
 
-    UINT8 value[MAX_MEM_OP_SIZE];
-    PIN_SafeCopy(value, (UINT8 *) (readAddr), readSize);
+    // Copy safely from the traced process.
+    size_t copied = PIN_SafeCopy(value.data(),
+                                 reinterpret_cast<UINT8*>(readAddr),
+                                 readSize);
 
-    ADDRINT valueInt = uint8Toaddrint(value, readSize);
+    // If Pin could not copy the full value, do not model a partial read.
+    // Skipping is safer than creating a corrupted IR state.
+    if (copied != readSize) {
+        PIN_MutexUnlock(&dataLock);
+        return;
+    }
+
+    ADDRINT valueInt = uint8Toaddrint(value.data(), readSize);
 
     // Create new object to hold memory read information.
     MRInst read;
@@ -1282,16 +1301,18 @@ void checkMemRead(ADDRINT readAddr, UINT32 readSize, UINT32 fnId, UINT8* binary,
     read.location = readAddr;
     read.value = valueInt;
     read.valueSize = readSize;
+
     // Store it in the reads map.
-    assert(reads.size()+1 < reads.max_size());
+    assert(reads.size() + 1 < reads.max_size());
     reads[readAddr] = read;
+
     // Track the last added key.
     lastMemReadLoc = readAddr;
+
     // Mark that the tool needs to update the register.
     populate_regs = true;
 
-    // Check if the current memory location belongs to any of existing node,
-    // i.e., node evaluation.
+    // Check if the current memory location belongs to any existing node.
     nodeEvaluation(readAddr, valueInt, fnId, binary, instSize, addr);
 
     PIN_MutexUnlock(&dataLock);
